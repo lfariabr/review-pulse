@@ -1,3 +1,5 @@
+# .venv/bin/pytest tests/test_parser.py -v
+
 from pathlib import Path
 
 import pandas as pd

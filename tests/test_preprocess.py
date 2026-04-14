@@ -1,6 +1,7 @@
+# .venv/bin/pytest tests/test_preprocess.py -v
+
 import pandas as pd
 import pytest
-
 from src.preprocess import (
     audit_labels,
     clean_text,
