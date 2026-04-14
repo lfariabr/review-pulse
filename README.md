@@ -2,7 +2,9 @@
 
 Multi-domain Amazon product review sentiment classifier. Trained on 8,000 labelled reviews across Books, DVDs, Electronics, and Kitchen & Housewares.
 
-Built for ISY503 Intelligent Systems — Assessment 3.
+Built for ISY503 Intelligent Systems, Assessment 3.
+
+[Main repo with +800 commits in ~1 year of work](https://github.com/lfariabr/masters-swe-ai)
 
 ## Project structure
 
@@ -31,10 +33,14 @@ review-pulse/
 ## Setup
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Place your `.review` data files under `data/` in the following structure:
+> **Windows:** use `.venv\Scripts\activate` instead.
+
+Place `.review` data files under `data/` in the following structure:
 
 ```
 data/
