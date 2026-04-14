@@ -1,0 +1,14 @@
+outputs/*.pt
+outputs/*.joblib
+outputs/*.png
+outputs/*.csv
+embeddings/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.DS_Store
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
