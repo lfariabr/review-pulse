@@ -134,13 +134,21 @@ def load_glove(
         for line in f:
             parts = line.split()
             word = parts[0]
+            vector = parts[1:]
+            if len(vector) != EMBEDDING_DIM:
+                raise ValueError(
+                    f"load_glove: expected {EMBEDDING_DIM}-dim vectors, "
+                    f"got {len(vector)} in {glove_path}. "
+                    f"Make sure you are using glove.6B.100d.txt."
+                )
             if word in vocab:
-                embeddings[vocab[word]] = np.array(parts[1:], dtype=np.float32)
+                embeddings[vocab[word]] = np.array(vector, dtype=np.float32)
                 found += 1
 
+    coverage = found / max(len(vocab) - 2, 1) * 100  # exclude PAD and UNK
     print(
-        f"load_glove: {found:,} / {len(vocab):,} vocab words "
-        f"initialised from GloVe"
+        f"load_glove: {found:,} / {len(vocab):,} vocab words initialised "
+        f"from GloVe  ({coverage:.1f}% coverage)"
     )
     return embeddings
 

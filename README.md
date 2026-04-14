@@ -48,7 +48,22 @@ data/
   kitchen_&_housewares/negative.review
 ```
 
-GloVe embeddings are optional. If you want to use them, download `glove.6B.zip` from [Stanford NLP](https://nlp.stanford.edu/projects/glove/) and place `glove.6B.100d.txt` in `embeddings/`. The BiLSTM will train with learned embeddings if the file is not present.
+### GloVe embeddings (optional)
+
+GloVe pre-trained vectors can improve accuracy but are not required to run the project.
+
+| | Without GloVe | With GloVe |
+|---|---|---|
+| Embeddings | Learned from scratch | Initialised from GloVe 100d |
+| Setup | Nothing extra needed | Download ~800 MB file |
+| Expected accuracy | ~88–91% | ~92–95% |
+
+To enable GloVe:
+1. Download `glove.6B.zip` from [Stanford NLP](https://nlp.stanford.edu/projects/glove/)
+2. Extract and place `glove.6B.100d.txt` in the `embeddings/` directory
+3. Re-run training — `load_glove()` detects the file automatically
+
+If `embeddings/glove.6B.100d.txt` is absent, training proceeds with randomly initialised embeddings and a warning is printed. The `embeddings/` directory is gitignored.
 
 ## Train
 
