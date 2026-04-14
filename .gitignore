@@ -13,3 +13,7 @@ __pycache__/
 dist/
 build/
 .venv/
+data/books
+data/dvd
+data/electronics
+data/kitchen_&_housewares
