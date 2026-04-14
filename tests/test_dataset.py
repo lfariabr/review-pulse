@@ -1,3 +1,5 @@
+# .venv/bin/pytest tests/test_dataset.py -v 2>&1
+
 import json
 import tempfile
 from pathlib import Path
@@ -200,3 +202,31 @@ def test_make_dataloaders_batch_shape():
     tokens, labels = next(iter(train_loader))
     assert tokens.shape[1] == 16
     assert labels.shape[0] == tokens.shape[0]
+
+
+def test_make_dataloaders_seed_reproducibility():
+    """Same seed must produce the same first batch order on the train loader."""
+    vocab = build_vocab(TRAIN_TEXTS, min_freq=1)
+    df = _make_split_df(TRAIN_TEXTS * 4, [1, 0, 1, 0, 1] * 4)
+    val_df = _make_split_df(TRAIN_TEXTS[:2], [1, 0])
+
+    loader_a, _, _ = make_dataloaders(df, val_df, val_df, vocab, batch_size=4, seed=42)
+    loader_b, _, _ = make_dataloaders(df, val_df, val_df, vocab, batch_size=4, seed=42)
+
+    tokens_a, _ = next(iter(loader_a))
+    tokens_b, _ = next(iter(loader_b))
+    assert torch.equal(tokens_a, tokens_b)
+
+
+def test_make_dataloaders_different_seeds_differ():
+    """Different seeds should (with overwhelming probability) produce different order."""
+    vocab = build_vocab(TRAIN_TEXTS, min_freq=1)
+    df = _make_split_df(TRAIN_TEXTS * 4, [1, 0, 1, 0, 1] * 4)
+    val_df = _make_split_df(TRAIN_TEXTS[:2], [1, 0])
+
+    loader_a, _, _ = make_dataloaders(df, val_df, val_df, vocab, batch_size=4, seed=0)
+    loader_b, _, _ = make_dataloaders(df, val_df, val_df, vocab, batch_size=4, seed=99)
+
+    tokens_a, _ = next(iter(loader_a))
+    tokens_b, _ = next(iter(loader_b))
+    assert not torch.equal(tokens_a, tokens_b)

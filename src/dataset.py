@@ -196,6 +196,7 @@ def make_dataloaders(
     vocab: dict[str, int],
     batch_size: int = BATCH_SIZE,
     max_len: int = MAX_LEN,
+    seed: int = 42,
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Wrap train / val / test DataFrames in PyTorch DataLoaders.
 
@@ -209,16 +210,20 @@ def make_dataloaders(
         vocab:      Word → index mapping built from train_df texts only.
         batch_size: Mini-batch size for training and evaluation.
         max_len:    Sequence length passed to tokenize_and_pad().
+        seed:       RNG seed for reproducible training-set shuffling.
+                    Val and test loaders are never shuffled.
 
     Returns:
         (train_loader, val_loader, test_loader)
     """
     def _make(df: pd.DataFrame, shuffle: bool) -> DataLoader:
         tokens = tokenize_and_pad(df["text"].tolist(), vocab, max_len)
+        generator = torch.Generator().manual_seed(seed) if shuffle else None
         return DataLoader(
             ReviewDataset(tokens, df["label"].tolist()),
             batch_size=batch_size,
             shuffle=shuffle,
+            generator=generator,
         )
 
     train_loader = _make(train_df, shuffle=True)
