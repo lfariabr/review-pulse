@@ -78,6 +78,28 @@ What landed (separate commit from #5/#6):
 - `load_glove()` — maps vocab to 100d GloVe vectors; validates embedding dimension; reports coverage %; gracefully falls back to random init if file not present
 - `README.md` — dedicated GloVe section with comparison table and step-by-step setup instructions
 
+## Issue #8 — TF-IDF + Logistic Regression baseline (`baseline.py`) ✅
+
+Key results on real data, that's the benchmark the BiLSTM needs to beat. 
+┌───────┬──────────┬───────┐            
+│ Split │ Accuracy │  F1   │            
+├───────┼──────────┼───────┤
+│ Val   │ 83.5%    │ 83.2% │            
+├───────┼──────────┼───────┤          
+│ Test  │ 82.7%    │ 81.9% │            
+└───────┴──────────┴───────┘          
+                        
+What also landed:
+- `src/baseline.py` — build_pipeline, train_baseline, evaluate_baseline, load_baseline                   
+- `tests/test_baseline.py` — 9 unit tests + 1 slow integration test (runs full pipeline, marked @pytest.mark.slow)   
+- `pytest.ini` — registers the slow marker so -m "not slow" works cleanly  
+
+## Issue #9 — BiLSTM model definition (`model.py`) ✅
+
+What landed:
+- `src/model.py` — `BiLSTMSentiment` nn.Module: `Embedding(padding_idx=0) → Dropout → BiLSTM(hidden=256, layers=2, bidirectional) → concat final fwd+bwd hidden → Dropout → Linear(512, 1)`. Raw logit output; optional `pretrained_embeddings` from `load_glove()`.
+- `tests/test_model.py` — 21 tests: architecture checks, forward pass shape/dtype, batch size variants, GloVe init, bad shape rejection, determinism in eval mode. All green.
+
 ---
 
-## Issues #8–21 — Pending
+## Issues #10–21 — Pending
