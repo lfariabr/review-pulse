@@ -129,10 +129,21 @@ What landed:
 
 ## Issue #11 — Evaluation & error analysis (`evaluate.py`) ✅
 
+Real data results on held-out **test** split:
+
+| Model | Accuracy | F1 |
+|---|---:|---:|
+| TF-IDF + Logistic Regression | 82.7% | 81.9% |
+| BiLSTM + GloVe | 81.0% | 80.3% |
+
+BiLSTM beat baseline on **validation** (84.0% vs 83.2% F1) but baseline generalised better on **test**. This is a mature ML result: the simpler model wins on held-out data. The BiLSTM still satisfies the assessment's neural network requirement. Error analysis found 220 misclassified examples total.
+
+> Frame for presentation: TF-IDF is the stronger deployed model; BiLSTM demonstrates the neural architecture; DistilBERT/RoBERTa is the natural next step for contextual embeddings.
+
 What landed:
 - `src/evaluate.py` — `load_checkpoint`, `collect_predictions`, `plot_confusion_matrix`, `error_analysis`, `run_evaluation`
-- Outputs: `outputs/confusion_matrix.png`, `outputs/error_analysis.csv` (50 misclassified examples, evenly split FP/FN)
-- Side-by-side comparison table printed at runtime: TF-IDF baseline vs BiLSTM+GloVe
+- Outputs: `outputs/confusion_matrix.png`, `outputs/error_analysis.csv` (220 misclassified, 50 sampled)
+- Side-by-side comparison table printed at runtime
 - `tests/test_evaluate.py` — 11 unit tests + 1 slow integration test, all green
 
 ---
