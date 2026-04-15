@@ -82,14 +82,21 @@ class BiLSTMSentiment(nn.Module):
         Returns:
             Raw logit tensor, shape (batch_size,).
         """
-        # x: (batch, seq_len)
+        # Compute real (non-pad) length for each sequence; clamp to ≥1 so
+        # pack_padded_sequence never receives a length of zero.
+        lengths = (x != 0).sum(dim=1).cpu()
+        lengths = torch.clamp(lengths, min=1)
+
         embedded = self.embedding_dropout(self.embedding(x))
         # embedded: (batch, seq_len, embedding_dim)
 
-        _, (hidden, _) = self.lstm(embedded)
+        packed = nn.utils.rnn.pack_padded_sequence(
+            embedded, lengths, batch_first=True, enforce_sorted=False
+        )
+        _, (hidden, _) = self.lstm(packed)
         # hidden: (n_layers * 2, batch, hidden_dim)
-        # Take the final layer's forward and backward hidden states.
         # hidden[-2] = top forward direction, hidden[-1] = top backward direction
+        # With packed sequences these correspond to the real sequence endpoints.
         final_hidden = torch.cat([hidden[-2], hidden[-1]], dim=1)
         # final_hidden: (batch, hidden_dim * 2)
 

@@ -1,3 +1,5 @@
+# .venv/bin/pytest tests/test_model.py -v
+
 """Tests for src/model.py — BiLSTMSentiment."""
 
 import numpy as np
@@ -181,6 +183,28 @@ def test_padding_idx_zero_embedding_is_zero_vector():
     m = _model()
     pad_vec = m.embedding.weight.data[0]
     assert torch.all(pad_vec == 0)
+
+
+# ---------------------------------------------------------------------------
+# packed sequences — padding must not change output for the same real tokens
+# ---------------------------------------------------------------------------
+
+def test_padding_does_not_change_output():
+    """Extra pad tokens appended to the same real tokens must not alter the logit."""
+    m = _model(dropout=0.0)
+    m.eval()
+
+    # token ids 5-8 are the "real" content; 0 = <pad>
+    padded_short = torch.tensor([[5, 6, 7, 8, 0, 0]])
+    padded_long  = torch.tensor([[5, 6, 7, 8, 0, 0, 0, 0, 0, 0]])
+
+    with torch.no_grad():
+        out_short = m(padded_short)
+        out_long  = m(padded_long)
+
+    assert torch.allclose(out_short, out_long, atol=1e-6), (
+        f"Packed LSTM output changed with extra padding: {out_short} vs {out_long}"
+    )
 
 
 # ---------------------------------------------------------------------------
