@@ -127,4 +127,14 @@ What landed:
 
 ---
 
-## Issues #11–21 — Pending
+## Issue #11 — Evaluation & error analysis (`evaluate.py`) ✅
+
+What landed:
+- `src/evaluate.py` — `load_checkpoint`, `collect_predictions`, `plot_confusion_matrix`, `error_analysis`, `run_evaluation`
+- Outputs: `outputs/confusion_matrix.png`, `outputs/error_analysis.csv` (50 misclassified examples, evenly split FP/FN)
+- Side-by-side comparison table printed at runtime: TF-IDF baseline vs BiLSTM+GloVe
+- `tests/test_evaluate.py` — 11 unit tests + 1 slow integration test, all green
+
+---
+
+## Issues #12–21 — Pending
