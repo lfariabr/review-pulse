@@ -20,12 +20,54 @@ from typing import Optional
 import torch
 
 from src.dataset import OUTPUTS_DIR, load_vocab
-from src.evaluate import load_checkpoint
+from src.model import BiLSTMSentiment
 from src.preprocess import clean_text
 
 CHECKPOINT_PATH = OUTPUTS_DIR / "bilstm.pt"
 VOCAB_PATH      = OUTPUTS_DIR / "vocab.json"
 BASELINE_PATH   = OUTPUTS_DIR / "baseline.joblib"
+
+
+# ---------------------------------------------------------------------------
+# Checkpoint loading (lives here so evaluate.py doesn't pull in matplotlib)
+# ---------------------------------------------------------------------------
+
+def load_checkpoint(
+    checkpoint_path: Optional[Path] = None,
+    device: Optional[torch.device] = None,
+) -> tuple:
+    """Load a saved BiLSTM checkpoint and reconstruct the model.
+
+    Returns:
+        (model, model_config, history) — model is in eval mode on device.
+    """
+    checkpoint_path = checkpoint_path or CHECKPOINT_PATH
+    if device is None:
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    cfg  = ckpt["model_config"]
+
+    model = BiLSTMSentiment(
+        vocab_size=cfg["vocab_size"],
+        embedding_dim=cfg["embedding_dim"],
+        hidden_dim=cfg["hidden_dim"],
+        n_layers=cfg["n_layers"],
+        dropout=cfg["dropout"],
+    ).to(device)
+
+    model.load_state_dict(ckpt["model_state"])
+    model.eval()
+
+    print(f"load_checkpoint: loaded epoch {ckpt['best_epoch']} "
+          f"(val_f1={ckpt['best_val_f1']:.4f}) ← {checkpoint_path}")
+    return model, cfg, ckpt.get("history", [])
+
 
 # ---------------------------------------------------------------------------
 # Model loaders (cached at module level after first call)
