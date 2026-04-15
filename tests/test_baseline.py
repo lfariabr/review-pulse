@@ -1,4 +1,4 @@
-# .venv/bin/python3 -m src.baseline
+# .venv/bin/python3 -m src.baseline -v
 
 from pathlib import Path
 

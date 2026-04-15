@@ -1,4 +1,5 @@
 # .venv/bin/pytest tests/test_evaluate.py -v
+# .venv/bin/pytest tests/test_evaluate.py -v -m "not slow"
 
 """Tests for src/evaluate.py."""
 
