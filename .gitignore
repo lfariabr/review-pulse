@@ -3,6 +3,7 @@ outputs/*.joblib
 outputs/*.png
 outputs/*.csv
 embeddings/
+favicon_io.zip
 __pycache__/
 *.pyc
 *.pyo
