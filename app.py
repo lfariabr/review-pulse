@@ -70,7 +70,7 @@ model_name = st.radio(
     "Model",
     options=list(MODEL_OPTIONS.keys()),
     format_func=lambda k: MODEL_OPTIONS[k],
-    horizontal=True,
+    horizontal=False,
     index=0,
 )
 
