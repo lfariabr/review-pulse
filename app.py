@@ -21,10 +21,11 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Sidebar logo (icon-only — appears in both expanded and collapsed states)
+# Sidebar — logo + spacer
 # ---------------------------------------------------------------------------
 
-st.logo("logo.jpeg", link=None, size="large")
+st.logo("logo-icon.png", link=None)   # icon in the top-left chrome
+st.sidebar.image("logo.jpeg", use_container_width=True)
 
 # ---------------------------------------------------------------------------
 # Model loading — cached for the lifetime of the Streamlit session
@@ -113,7 +114,7 @@ label_col, btn_col = st.columns([5, 1])
 with label_col:
     st.markdown("#### Review text")
 with btn_col:
-    st.button("💡", help="Load a random sample review", on_click=_load_random_sample)
+    st.button("💡 Generate", help="Load a random sample review", on_click=_load_random_sample)
 
 text = st.text_area(
     label="Review text",
