@@ -50,7 +50,7 @@ def _load_bilstm():
 
 col_logo, col_title = st.columns([1, 6])
 with col_logo:
-    st.image("logo-icon.png", width=64)
+    st.image("logo.jpeg", width=200)
 with col_title:
     st.title("ReviewPulse")
     st.caption("Multi-domain Amazon review sentiment classifier")
@@ -133,6 +133,6 @@ if classify and text.strip():
 st.divider()
 st.caption(
     "Built for ISY503 Intelligent Systems · Torrens University · 2026‑T1  \n"
-    "Baseline: TF-IDF + LogReg (test F1 81.9%) · "
+    "Baseline: TF-IDF + LogReg (test F1 81.9%)  \n"
     "Neural: BiLSTM + GloVe (val F1 84.0%, test F1 80.3%)"
 )
