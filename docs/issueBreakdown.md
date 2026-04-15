@@ -148,4 +148,17 @@ What landed:
 
 ---
 
-## Issues #12–21 — Pending
+## Issue #12 — Inference module (`inference.py`) ✅
+
+What landed:
+- `src/inference.py` — `load_baseline_model`, `load_bilstm_model`, `predict_baseline`, `predict_bilstm`, `predict_sentiment`
+- Default model is **baseline** (better held-out test F1); BiLSTM available as `model_name="bilstm"`
+- Both paths call `clean_text()` from `preprocess.py` before prediction
+- Confidence: `predict_proba` for baseline, `torch.sigmoid(logit)` for BiLSTM
+- Module-level caching — models load once per process
+- Output shape: `{"label": "Positive review"|"Negative review", "confidence": float, "model": str}`
+- `tests/test_inference.py` — 11 unit tests + 2 slow integration tests, all green
+
+---
+
+## Issues #13–21 — Pending
