@@ -165,7 +165,12 @@ def train(
         per-epoch metric dicts).
     """
     if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
 
     checkpoint_path = checkpoint_path or CHECKPOINT_PATH
     Path(checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
@@ -198,8 +203,8 @@ def train(
     best_epoch   = 0
     history      = []
 
-    print(f"Training on {device} | epochs={epochs} | vocab={vocab_size:,} | hidden={hidden_dim}")
-    print("-" * 60)
+    print(f"Training on {device} | epochs={epochs} | vocab={vocab_size:,} | hidden={hidden_dim}", flush=True)
+    print("-" * 60, flush=True)
 
     for epoch in range(1, epochs + 1):
         train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, clip, device)
@@ -216,7 +221,8 @@ def train(
             f"train_loss={train_metrics['loss']:.4f} | "
             f"val_loss={val_metrics['loss']:.4f} | "
             f"val_acc={val_metrics['accuracy']:.4f} | "
-            f"val_f1={val_metrics['f1']:.4f}"
+            f"val_f1={val_metrics['f1']:.4f}",
+            flush=True,
         )
 
         if val_metrics["f1"] > best_val_f1:
@@ -239,10 +245,10 @@ def train(
                 },
                 checkpoint_path,
             )
-            print(f"  ✓ checkpoint saved (val_f1={best_val_f1:.4f})")
+            print(f"  ✓ checkpoint saved (val_f1={best_val_f1:.4f})", flush=True)
 
-    print("-" * 60)
-    print(f"Best val F1: {best_val_f1:.4f} at epoch {best_epoch}")
+    print("-" * 60, flush=True)
+    print(f"Best val F1: {best_val_f1:.4f} at epoch {best_epoch}", flush=True)
     return {"best_val_f1": best_val_f1, "best_epoch": best_epoch, "history": history}
 
 

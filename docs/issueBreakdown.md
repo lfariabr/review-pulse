@@ -88,7 +88,7 @@ Key results on real data, that's the benchmark the BiLSTM needs to beat.
 ├───────┼──────────┼───────┤          
 │ Test  │ 82.7%    │ 81.9% │            
 └───────┴──────────┴───────┘          
-                        
+    
 What also landed:
 - `src/baseline.py` — build_pipeline, train_baseline, evaluate_baseline, load_baseline                   
 - `tests/test_baseline.py` — 9 unit tests + 1 slow integration test (runs full pipeline, marked @pytest.mark.slow)   
@@ -100,6 +100,31 @@ What landed:
 - `src/model.py` — `BiLSTMSentiment` nn.Module: `Embedding(padding_idx=0) → Dropout → BiLSTM(hidden=256, layers=2, bidirectional) → concat final fwd+bwd hidden → Dropout → Linear(512, 1)`. Raw logit output; optional `pretrained_embeddings` from `load_glove()`.
 - `tests/test_model.py` — 21 tests: architecture checks, forward pass shape/dtype, batch size variants, GloVe init, bad shape rejection, determinism in eval mode. All green.
 
+## Issue #10 — Training loop with validation & early stopping (`train.py`) ✅
+
+Real data results (MPS, 10 epochs, GloVe 97.4% coverage):
+
+| Epoch | Train Loss | Val Loss | Val Acc | Val F1 |
+|-------|-----------|---------|--------|-------|
+| 1 | 0.6570 | 0.5701 | 72.6% | 71.5% |
+| 2 | 0.5831 | 0.4932 | 75.3% | 75.0% |
+| 3 | 0.5080 | 0.4360 | 80.6% | 79.8% |
+| 4 | 0.4756 | 0.4591 | 78.7% | 75.2% |
+| 5 | 0.4375 | 0.4500 | 78.8% | 80.8% |
+| 6 | 0.3784 | 0.4208 | 80.4% | 82.1% |
+| 7 | 0.3128 | 0.3865 | 83.9% | 83.6% |
+| 8 | 0.2542 | 0.4241 | 83.6% | 83.9% |
+| **9** | **0.2145** | **0.3851** | **84.3%** | **84.0% ← best** |
+| 10 | 0.1937 | 0.4777 | 80.6% | 82.6% |
+
+BiLSTM+GloVe (84.0% val F1) beats TF-IDF baseline (83.2% val F1). Overfitting visible at epoch 10 — checkpoint correctly saved at epoch 9.
+
+What landed:
+- `src/train.py` — `train_one_epoch`, `evaluate_epoch`, `train`: Adam + BCEWithLogitsLoss + grad clipping (max_norm=5), best checkpoint by val F1 to `outputs/bilstm.pt`
+- Checkpoint contains model state, model config, vocab path, and full metrics history
+- Auto-detects CUDA → MPS → CPU
+- `tests/test_train.py` — 12 unit tests + 1 slow integration test, all green
+
 ---
 
-## Issues #10–21 — Pending
+## Issues #11–21 — Pending
