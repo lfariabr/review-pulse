@@ -4,8 +4,6 @@ Usage:
     streamlit run app.py
 """
 
-from pathlib import Path
-
 from PIL import Image
 import streamlit as st
 
@@ -19,14 +17,14 @@ st.set_page_config(
     page_title="ReviewPulse",
     page_icon=_ICON,          # browser-tab favicon (icon-only)
     layout="centered",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------------------------
 # Sidebar logo (icon-only — appears in both expanded and collapsed states)
 # ---------------------------------------------------------------------------
 
-st.logo("logo-icon.png", link=None)
+st.logo("logo.jpeg", link=None, size="large")
 
 # ---------------------------------------------------------------------------
 # Model loading — cached for the lifetime of the Streamlit session
@@ -48,12 +46,8 @@ def _load_bilstm():
 # Header
 # ---------------------------------------------------------------------------
 
-col_logo, col_title = st.columns([1, 6])
-with col_logo:
-    st.image("logo.jpeg", width=200)
-with col_title:
-    st.title("ReviewPulse")
-    st.caption("Multi-domain Amazon review sentiment classifier")
+st.title("ReviewPulse")
+st.caption("Multi-domain Amazon review sentiment classifier")
 
 st.divider()
 
