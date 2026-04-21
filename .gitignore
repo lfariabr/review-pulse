@@ -1,5 +1,3 @@
-outputs/*.pt
-outputs/*.joblib
 outputs/*.png
 outputs/*.csv
 embeddings/
