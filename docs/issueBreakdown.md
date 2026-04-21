@@ -161,4 +161,54 @@ What landed:
 
 ---
 
-## Issues #13–21 — Pending
+## Issue #13 — Streamlit app (`app.py`) ✅
+
+What landed:
+- `app.py` — `st.set_page_config(page_icon=logo-icon.png)` for browser tab, `st.logo()` icon in top-left chrome, `st.sidebar.image(logo.jpeg)` full-width wordmark in sidebar
+- Model radio selector (baseline default, BiLSTM optional), text area with placeholder
+- 💡 Generate button loads a random sample review (5 positive + 5 negative, no repeat)
+- Result: sentiment label, confidence metric, progress bar, raw JSON expander
+- Footer: 3-line caption with course info and model comparison metrics
+- `static/` — full favicon package (apple-touch-icon, 16/32px, ico, webmanifest, android-chrome)
+
+---
+
+## Issue #14 — Unit tests (`tests/`) ✅
+
+All tests were built incrementally alongside each module. Final count: **117 unit tests, 5 slow integration tests**.
+
+| File | Covers | Tests |
+|---|---|---|
+| `test_parser.py` | parser extraction, missing-field handling | 10 |
+| `test_preprocess.py` | label audit, text cleaning, outlier removal, split reproducibility | 21 |
+| `test_dataset.py` | vocab no-leakage, padding length, Dataset, DataLoader | 21 |
+| `test_baseline.py` | TF-IDF + LogReg pipeline | 9 + 1 slow |
+| `test_model.py` | forward-pass shape, packed-sequence correctness, GloVe init | 22 |
+| `test_train.py` | training loop, checkpoint keys, history length | 12 + 1 slow |
+| `test_evaluate.py` | checkpoint loading, predictions, confusion matrix, error analysis | 11 + 1 slow |
+| `test_inference.py` | response shape, model routing, invalid model rejection | 11 + 2 slow |
+
+---
+
+## Issue #15 — Demo acceptance test cases (`docs/demo-test-cases.md`) ✅
+
+10 facilitator-style test cases with real outputs from both models:
+
+| Case | Baseline | BiLSTM |
+|---|---|---|
+| Clear positive | ✅ 73.8% | ✅ 97.9% |
+| Clear negative | ✅ 95.9% | ✅ 99.6% |
+| Short ambiguous | ⚠️ 54.8% | ❌ 88.1% overconfident |
+| Negation trap ("not bad") | ❌ both fail | ❌ |
+| Domain-shifted (books) | ✅ 69.4% | ✅ 86.2% |
+| Outside distribution (logistics) | ⚠️ 63.2% | ⚠️ 92.7% |
+| Mixed sentiment | ✅ 62.8% | ✅ 77.5% |
+| Very short positive | ✅ 94.8% | ✅ 86.1% |
+| Very short negative | ✅ 67.2% | ✅ 94.4% |
+| Sarcasm | ⚠️ 52.5% | ⚠️ 64.6% |
+
+Key finding: both models agree on 9/10 cases. Negation and sarcasm are shared failure modes — motivates DistilBERT as future extension.
+
+---
+
+## Issues #16–21 — Pending
