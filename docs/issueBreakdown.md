@@ -211,4 +211,35 @@ Key finding: both models agree on 9/10 cases. Negation and sarcasm are shared fa
 
 ---
 
-## Issues #16–21 — Pending
+## Issue #16 — Presentation outline (`docs/presentation-outline.md`) ✅
+
+12-slide outline following the CCF501 skeleton format:
+- **Content** (slide bullet points) per slide
+- **Speaker note** (verbatim script in blockquote)
+- **Visual — Nano Banana prompt** (Lucidchart-style AI image generation, 7 prompts total)
+- Per-slide timing (total ~13.5 min)
+- Nano Banana summary table (#1–#7) + verification checklist + design notes
+
+What landed:
+- `docs/presentation-outline.md` — full 12-slide structure with speaker notes and 7 Nano Banana image prompts
+
+---
+
+## Issue #17 — Individual contribution report scaffold (`docs/individual-report-template.md`) ✅
+
+Slide assignment (3-person group):
+- **Luis** (Slides 1, 4, 5, 6, 7, 12): Title · Preprocessing · Architecture · Training · Results · Summary (~6.25 min)
+- **Victor Meneses** (Slides 3, 8, 10): Dataset · Error Analysis · Ethics & Limitations (~3.5 min)
+- **Samiran Shrestha** (Slides 2, 9, 11): Problem Statement · Live Demo · Future Work (~3.75 min)
+
+Per-person report content:
+- **Luis** — fully drafted (~250 words), pre-filled with actual technical contributions; 65% contribution; ethics angle: uncalibrated confidence + deployment risk
+- **Victor** — suggested draft drawing from slide 3/8/10 speaker notes; 17.5%; ethics angle: dataset age / temporal language shift
+- **Samiran** — suggested draft drawing from slide 2/9/11 speaker notes; 17.5%; ethics angle: binary classification is reductive
+
+What landed:
+- `docs/individual-report-template.md` — 3-person scaffold with pre-filled Luis section + Victor and Samiran templates with slide-specific talking points from `docs/presentation-outline.md`
+
+---
+
+## Issues #18–21 — Pending

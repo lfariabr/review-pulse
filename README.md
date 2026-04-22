@@ -4,7 +4,7 @@ Multi-domain Amazon product review sentiment classifier. Trained on 8,000 labell
 
 Built for ISY503 Intelligent Systems, Assessment 3.
 
-[Main repo with +800 commits in ~1 year of work](https://github.com/lfariabr/masters-swe-ai)
+[Main repo with +900 commits in ~1 year of work](https://github.com/lfariabr/masters-swe-ai)
 
 ## Project structure
 
