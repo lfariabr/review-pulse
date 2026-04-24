@@ -242,4 +242,20 @@ What landed:
 
 ---
 
-## Issues #18–21 — Pending
+## Issue #18 — Contribution log & team table ✅
+
+Covered by existing docs — no separate files created:
+- **Team contribution table** (65% / 20% / 20% split): `docs/individual-report-template.md`
+- **Artifact-by-artifact evidence log** (who built what, per issue): `docs/issueBreakdown.md` (this file)
+
+---
+
+## Issue #19 — References & ethics notes ✅
+
+Covered by existing docs — no separate files created:
+- **APA references**: `docs/individual-report-template.md` (per-person reference sections)
+- **Ethics coverage** (label noise, domain bias, calibration, dataset age, deployment risk): `docs/presentation-outline.md` Slide 10 speaker notes + ethics paragraphs in each individual report
+
+---
+
+## Issues #20–21 — Pending
