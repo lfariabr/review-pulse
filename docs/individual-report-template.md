@@ -28,9 +28,9 @@ For speaker notes and suggested wording per slide — work from `docs/presentati
 
 | Team Member | Student ID | Main Contribution | % |
 |---|---|---|---:|
-| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 65% |
-| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 17.5% |
-| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 17.5% |
+| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 60% |
+| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 20% |
+| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 20% |
 | **Total** | | | **100%** |
 
 ### Draft Report (~250 words)
@@ -41,7 +41,7 @@ On the data side, I built the pseudo-XML parser (`parser.py`), the preprocessing
 
 An important ethical consideration is that the Blitzer et al. (2007) dataset uses filename-derived labels rather than human raters. Because the dataset uses filename-derived labels rather than direct human annotation, we audited for possible rating/text conflicts and ambiguous boundary cases. In this dataset, we found zero ambiguous rows, but the risk remains relevant in broader sentiment classification settings. BiLSTM confidence values are also uncalibrated — 98% confidence does not imply 98% accuracy — and the model generalises poorly to out-of-distribution text such as logistics reviews. Any production deployment requires human oversight and periodic label audits.
 
-I estimate my contribution at 65% as the primary technical implementer. Victor contributed 17.5% covering dataset analysis, error analysis, and ethics. Samiran contributed 17.5% covering the problem framing, live demo delivery, and future work.
+I estimate my contribution at 60% as the primary technical implementer. Victor contributed 20% covering dataset analysis, error analysis, and ethics. Samiran contributed 20% covering the problem framing, live demo delivery, and future work.
 
 ### APA References
 
@@ -63,9 +63,9 @@ I estimate my contribution at 65% as the primary technical implementer. Victor c
 
 | Team Member | Student ID | Main Contribution | % |
 |---|---|---|---:|
-| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 65% |
-| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 17.5% |
-| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 17.5% |
+| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 60% |
+| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 20% |
+| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 20% |
 | **Total** | | | **100%** |
 
 ### Draft Report (~250 words) — suggested content
@@ -80,7 +80,7 @@ Slide 10 addresses ethics: label noise risk from filename-based labelling, domai
 
 An important ethical consideration I want to highlight is dataset age. The Blitzer et al. (2007) data was collected approximately 20 years ago; emoji, platform-specific slang, and short-form text are common today but absent from training. Periodic retraining on modern review data would reduce this distributional shift risk.
 
-I estimate my contribution at 17.5% covering dataset analysis, error analysis, and ethics. Luis contributed 65% as the primary technical implementer. Samiran contributed 17.5% covering the problem framing, live demo delivery, and future work.
+I estimate my contribution at 20% covering dataset analysis, error analysis, and ethics. Luis contributed 60% as the primary technical implementer. Samiran contributed 20% covering the problem framing, live demo delivery, and future work.
 
 ### APA References
 
@@ -101,9 +101,9 @@ I estimate my contribution at 17.5% covering dataset analysis, error analysis, a
 
 | Team Member | Student ID | Main Contribution | % |
 |---|---|---|---:|
-| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 65% |
-| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 17.5% |
-| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 17.5% |
+| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 60% |
+| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 20% |
+| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 20% |
 | **Total** | | | **100%** |
 
 ### Draft Report (~250 words) — suggested content
@@ -118,12 +118,12 @@ Slide 11 presents four concrete next steps: DistilBERT or RoBERTa for contextual
 
 An important ethical consideration I focused on is that binary sentiment classification is reductive. Real reviews express nuanced opinions — mixed, hedged, or ironic — that a positive/negative label cannot capture. Deploying a binary classifier in high-stakes contexts risks suppressing legitimate nuance.
 
-I estimate my contribution at 17.5% covering the problem framing, live demo delivery, and future work. Luis contributed 65% as the primary technical implementer. Victor contributed 17.5% covering dataset analysis, error analysis, and ethics.
+I estimate my contribution at 20% covering the problem framing, live demo delivery, and future work. Luis contributed 60% as the primary technical implementer. Victor contributed 20% covering dataset analysis, error analysis, and ethics.
 
 ### APA References
 
 - Blitzer, J., Dredze, M., & Pereira, F. (2007). Biographies, Bollywood, Boom-boxes and Blenders: Domain adaptation for sentiment classification. In *Proceedings of the 45th Annual Meeting of the ACL* (pp. 440–447). ACL. https://aclanthology.org/P07-1056/
-- Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. In *Proceedings of NAACL-HLT 2019* (pp. 4171–4186). https://doi.org/10.18653/v1/N19-1423
+- Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. In *Proceedings of NAACL-HLT 2019* (pp. 4171–4186). https://doi.org/10.18603/v1/N19-1423
 
 ---
 
