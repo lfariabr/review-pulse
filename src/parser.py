@@ -18,6 +18,7 @@ LABEL_MAP = {
     "positive.review": 1,
     "negative.review": 0,
 }
+UNLABELED_FILENAME = "unlabeled.review"
 
 
 def parse_review_file(filepath: Path, label: int) -> list[dict]:
@@ -60,6 +61,28 @@ def load_all_domains(data_dir: Path = DATA_DIR) -> pd.DataFrame:
             for r in domain_records:
                 r["domain"] = domain
             records.extend(domain_records)
+
+    df = pd.DataFrame(records)
+    return df.reset_index(drop=True)
+
+
+def load_unlabeled_domains(data_dir: Path = DATA_DIR) -> pd.DataFrame:
+    """Load unlabeled reviews from all domains where the file exists.
+
+    Returns a DataFrame with the same schema as ``load_all_domains()``, but with
+    ``label`` fixed to ``-1`` to indicate that the text should only be used for
+    unsupervised workflows such as local pretraining.
+    """
+    records = []
+    for domain, domain_path in DOMAINS.items():
+        resolved = data_dir / domain_path.name if data_dir != DATA_DIR else domain_path
+        filepath = resolved / UNLABELED_FILENAME
+        if not filepath.exists():
+            continue
+        domain_records = parse_review_file(filepath, label=-1)
+        for record in domain_records:
+            record["domain"] = domain
+        records.extend(domain_records)
 
     df = pd.DataFrame(records)
     return df.reset_index(drop=True)

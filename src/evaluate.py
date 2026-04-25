@@ -30,6 +30,7 @@ from src.dataset import (
     make_dataloaders,
 )
 from src.inference import load_checkpoint   # avoids pulling matplotlib into app startup
+from src.model import BiLSTMSentiment
 from src.train import evaluate_epoch
 
 CHECKPOINT_PATH    = OUTPUTS_DIR / "bilstm.pt"
@@ -217,5 +218,177 @@ def run_evaluation(
     return {"bilstm": bilstm_metrics, "baseline": baseline_metrics}
 
 
+# ---------------------------------------------------------------------------
+# DistilBERT evaluation runner
+# ---------------------------------------------------------------------------
+
+def collect_bert_predictions(
+    model: torch.nn.Module,
+    loader: torch.utils.data.DataLoader,
+    device: torch.device,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return transformer-model predictions for a full dataloader."""
+    model.eval()
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for batch in loader:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            logits = model(input_ids=input_ids, attention_mask=attention_mask)
+            preds = (torch.sigmoid(logits) >= 0.5).long().cpu()
+            all_preds.extend(preds.tolist())
+            all_labels.extend(batch["labels"].long().tolist())
+
+    return np.array(all_labels), np.array(all_preds)
+
+
+def _run_single_distilbert_evaluation(
+    *,
+    label: str,
+    model: torch.nn.Module,
+    tokenizer,
+    checkpoint: dict,
+    device: torch.device,
+    test_df: pd.DataFrame,
+    confusion_path: Path,
+    error_path: Path,
+) -> dict:
+    """Evaluate one DistilBERT-style model on the held-out test split."""
+    from src.train_bert import evaluate_epoch_bert, make_bert_dataloaders
+
+    model_cfg = checkpoint.get("model_config", {})
+    batch_size = int(model_cfg.get("batch_size", 64))
+    max_len = int(model_cfg.get("max_len", 256))
+
+    _, _, test_loader = make_bert_dataloaders(
+        test_df,
+        test_df,
+        test_df,
+        tokenizer=tokenizer,
+        batch_size=batch_size,
+        max_len=max_len,
+        seed=42,
+    )
+
+    criterion = torch.nn.BCEWithLogitsLoss()
+    metrics = evaluate_epoch_bert(model, test_loader, criterion, device)
+    y_true, y_pred = collect_bert_predictions(model, test_loader, device)
+
+    print(f"\n=== {label} — test ===")
+    print(classification_report(y_true, y_pred, target_names=["negative", "positive"]))
+
+    plot_confusion_matrix(
+        y_true,
+        y_pred,
+        title=f"{label} — Test Confusion Matrix",
+        save_path=confusion_path,
+    )
+    error_analysis(test_df, y_true, y_pred, save_path=error_path)
+
+    return {
+        **metrics,
+        "best_val_f1": checkpoint.get("best_val_f1"),
+        "best_epoch": checkpoint.get("best_epoch"),
+    }
+
+
+def run_evaluation_distilbert(
+    local_checkpoint_path: Optional[Path] = None,
+    local_vocab_path: Optional[Path] = None,
+    pretrained_checkpoint_path: Optional[Path] = None,
+    local_confusion_path: Optional[Path] = None,
+    local_error_path: Optional[Path] = None,
+    pretrained_confusion_path: Optional[Path] = None,
+    pretrained_error_path: Optional[Path] = None,
+    evaluate_local: bool = True,
+    evaluate_pretrained: bool = True,
+) -> dict:
+    """Evaluate the saved local and/or pretrained DistilBERT checkpoints.
+
+    This mirrors ``run_evaluation`` but targets the transformer checkpoints
+    produced by ``src.train_bert``.
+    """
+    from src.parser import load_all_domains
+    from src.preprocess import preprocess
+    from src.train_bert import (
+        load_local_bert_bundle,
+        load_pretrained_bert_bundle,
+    )
+
+    if not evaluate_local and not evaluate_pretrained:
+        raise ValueError("At least one of evaluate_local or evaluate_pretrained must be True.")
+
+    raw = load_all_domains()
+    _, _, test_df = preprocess(raw)
+
+    results = {}
+
+    if evaluate_local:
+        local_model, local_tokenizer, local_ckpt, local_device = load_local_bert_bundle(
+            checkpoint_path=local_checkpoint_path,
+            vocab_path=local_vocab_path,
+        )
+        results["local"] = _run_single_distilbert_evaluation(
+            label="Local DistilBERT",
+            model=local_model,
+            tokenizer=local_tokenizer,
+            checkpoint=local_ckpt,
+            device=local_device,
+            test_df=test_df,
+            confusion_path=Path(
+                local_confusion_path
+                or OUTPUTS_DIR / "confusion_matrix_bert_local.png"
+            ),
+            error_path=Path(
+                local_error_path
+                or OUTPUTS_DIR / "error_analysis_bert_local.csv"
+            ),
+        )
+
+    if evaluate_pretrained:
+        pretrained_model, pretrained_tokenizer, pretrained_ckpt, pretrained_device = (
+            load_pretrained_bert_bundle(checkpoint_path=pretrained_checkpoint_path)
+        )
+        results["pretrained"] = _run_single_distilbert_evaluation(
+            label="Pretrained DistilBERT",
+            model=pretrained_model,
+            tokenizer=pretrained_tokenizer,
+            checkpoint=pretrained_ckpt,
+            device=pretrained_device,
+            test_df=test_df,
+            confusion_path=Path(
+                pretrained_confusion_path
+                or OUTPUTS_DIR / "confusion_matrix_bert_pretrained.png"
+            ),
+            error_path=Path(
+                pretrained_error_path
+                or OUTPUTS_DIR / "error_analysis_bert_pretrained.csv"
+            ),
+        )
+
+    if len(results) > 1:
+        print("\n" + "=" * 50)
+        print(f"{'Model':<24} {'Accuracy':>10} {'F1':>10}")
+        print("-" * 50)
+        if "local" in results:
+            print(
+                f"{'Local DistilBERT':<24} "
+                f"{results['local']['accuracy']:>10.4f} "
+                f"{results['local']['f1']:>10.4f}"
+            )
+        if "pretrained" in results:
+            print(
+                f"{'Pretrained DistilBERT':<24} "
+                f"{results['pretrained']['accuracy']:>10.4f} "
+                f"{results['pretrained']['f1']:>10.4f}"
+            )
+        print("=" * 50)
+
+    return results
+
+
 if __name__ == "__main__":
     run_evaluation()
+    run_evaluation_distilbert()

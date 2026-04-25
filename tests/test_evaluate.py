@@ -13,6 +13,7 @@ from src.evaluate import (
     error_analysis,
     load_checkpoint,
     plot_confusion_matrix,
+    run_evaluation_distilbert,
 )
 from src.model import BiLSTMSentiment
 from src.dataset import build_vocab, make_dataloaders
@@ -216,3 +217,64 @@ def test_run_evaluation_returns_metrics():
     assert "bilstm"   in result
     assert "baseline" in result
     assert result["bilstm"]["accuracy"] >= 0.75
+
+
+def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
+    """DistilBERT evaluation should return metric bundles for both model paths."""
+    import src.parser as parser_module
+    import src.preprocess as preprocess_module
+    import src.train_bert as train_bert_module
+
+    test_df = _small_df()
+    vocab = build_vocab(test_df["text"], min_freq=1)
+    tokenizer = train_bert_module.load_tokenizer(vocab=vocab)
+
+    class TinyBertClassifier(torch.nn.Module):
+        def forward(self, input_ids, attention_mask):
+            del attention_mask
+            return (input_ids[:, 0] % 2).float() - 0.5
+
+    checkpoint = {
+        "model_config": {"batch_size": 4, "max_len": 16},
+        "best_val_f1": 0.8,
+        "best_epoch": 2,
+    }
+
+    monkeypatch.setattr(parser_module, "load_all_domains", lambda: pd.DataFrame())
+    monkeypatch.setattr(preprocess_module, "preprocess", lambda raw: (None, None, test_df))
+    monkeypatch.setattr(
+        train_bert_module,
+        "load_local_bert_bundle",
+        lambda checkpoint_path=None, vocab_path=None: (
+            TinyBertClassifier(),
+            tokenizer,
+            checkpoint,
+            torch.device("cpu"),
+        ),
+    )
+    monkeypatch.setattr(
+        train_bert_module,
+        "load_pretrained_bert_bundle",
+        lambda checkpoint_path=None: (
+            TinyBertClassifier(),
+            tokenizer,
+            checkpoint,
+            torch.device("cpu"),
+        ),
+    )
+
+    result = run_evaluation_distilbert(
+        local_confusion_path=tmp_path / "cm_local.png",
+        local_error_path=tmp_path / "errors_local.csv",
+        pretrained_confusion_path=tmp_path / "cm_pretrained.png",
+        pretrained_error_path=tmp_path / "errors_pretrained.csv",
+    )
+
+    assert "local" in result
+    assert "pretrained" in result
+    assert "accuracy" in result["local"]
+    assert "f1" in result["pretrained"]
+    assert (tmp_path / "cm_local.png").exists()
+    assert (tmp_path / "errors_local.csv").exists()
+    assert (tmp_path / "cm_pretrained.png").exists()
+    assert (tmp_path / "errors_pretrained.csv").exists()
