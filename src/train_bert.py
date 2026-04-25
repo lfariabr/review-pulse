@@ -1012,4 +1012,6 @@ if __name__ == "__main__":
             print(f"Skipping pretrained DistilBERT training: {exc}")
 
     end_time = time.perf_counter()
-    print(f"Training time: {end_time - load_time:.2f} seconds")
+    seconds = end_time - load_time
+    minutes, remaining_seconds = divmod(seconds, 60)
+    print(f"Training time: {int(minutes)} minutes and {remaining_seconds:.2f} seconds")

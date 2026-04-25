@@ -294,6 +294,101 @@ def _run_single_distilbert_evaluation(
     }
 
 
+def _load_distilbert_test_df() -> pd.DataFrame:
+    """Load the held-out test split used by DistilBERT evaluation helpers."""
+    from src.parser import load_all_domains
+    from src.preprocess import preprocess
+
+    raw = load_all_domains()
+    _, _, test_df = preprocess(raw)
+    return test_df
+
+
+def run_evaluation_local_distilbert(
+    local_checkpoint_path: Optional[Path] = None,
+    local_vocab_path: Optional[Path] = None,
+    local_confusion_path: Optional[Path] = None,
+    local_error_path: Optional[Path] = None,
+) -> dict:
+    """Evaluate the saved local DistilBERT-style checkpoint."""
+    from src.train_bert import load_local_bert_bundle
+
+    test_df = _load_distilbert_test_df()
+    local_model, local_tokenizer, local_ckpt, local_device = load_local_bert_bundle(
+        checkpoint_path=local_checkpoint_path,
+        vocab_path=local_vocab_path,
+    )
+    return _run_single_distilbert_evaluation(
+        label="Local DistilBERT",
+        model=local_model,
+        tokenizer=local_tokenizer,
+        checkpoint=local_ckpt,
+        device=local_device,
+        test_df=test_df,
+        confusion_path=Path(
+            local_confusion_path
+            or OUTPUTS_DIR / "confusion_matrix_bert_local.png"
+        ),
+        error_path=Path(
+            local_error_path
+            or OUTPUTS_DIR / "error_analysis_bert_local.csv"
+        ),
+    )
+
+
+def run_evaluation_pretrained_distilbert(
+    pretrained_checkpoint_path: Optional[Path] = None,
+    pretrained_confusion_path: Optional[Path] = None,
+    pretrained_error_path: Optional[Path] = None,
+) -> dict:
+    """Evaluate the saved pretrained DistilBERT checkpoint."""
+    from src.train_bert import load_pretrained_bert_bundle
+
+    test_df = _load_distilbert_test_df()
+    pretrained_model, pretrained_tokenizer, pretrained_ckpt, pretrained_device = (
+        load_pretrained_bert_bundle(checkpoint_path=pretrained_checkpoint_path)
+    )
+    return _run_single_distilbert_evaluation(
+        label="Pretrained DistilBERT",
+        model=pretrained_model,
+        tokenizer=pretrained_tokenizer,
+        checkpoint=pretrained_ckpt,
+        device=pretrained_device,
+        test_df=test_df,
+        confusion_path=Path(
+            pretrained_confusion_path
+            or OUTPUTS_DIR / "confusion_matrix_bert_pretrained.png"
+        ),
+        error_path=Path(
+            pretrained_error_path
+            or OUTPUTS_DIR / "error_analysis_bert_pretrained.csv"
+        ),
+    )
+
+
+def print_distilbert_comparison_table(results: dict) -> None:
+    """Print a compact comparison table for DistilBERT evaluation results."""
+    if not results:
+        return
+
+    print("\n" + "=" * 50)
+    print(f"{'Model':<24} {'Accuracy':>10} {'F1':>10}")
+    print("-" * 50)
+    if "local" in results:
+        print(
+            f"{'Local DistilBERT':<24} "
+            f"{results['local']['accuracy']:>10.4f} "
+            f"{results['local']['f1']:>10.4f}"
+        )
+    if "pretrained" in results:
+        print(
+            f"{'Pretrained DistilBERT':<24} "
+            f"{results['pretrained']['accuracy']:>10.4f} "
+            f"{results['pretrained']['f1']:>10.4f}"
+        )
+    print("=" * 50)
+
+
 def run_evaluation_distilbert(
     local_checkpoint_path: Optional[Path] = None,
     local_vocab_path: Optional[Path] = None,
@@ -310,85 +405,57 @@ def run_evaluation_distilbert(
     This mirrors ``run_evaluation`` but targets the transformer checkpoints
     produced by ``src.train_bert``.
     """
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
-    from src.train_bert import (
-        load_local_bert_bundle,
-        load_pretrained_bert_bundle,
-    )
-
     if not evaluate_local and not evaluate_pretrained:
         raise ValueError("At least one of evaluate_local or evaluate_pretrained must be True.")
-
-    raw = load_all_domains()
-    _, _, test_df = preprocess(raw)
 
     results = {}
 
     if evaluate_local:
-        local_model, local_tokenizer, local_ckpt, local_device = load_local_bert_bundle(
-            checkpoint_path=local_checkpoint_path,
-            vocab_path=local_vocab_path,
-        )
-        results["local"] = _run_single_distilbert_evaluation(
-            label="Local DistilBERT",
-            model=local_model,
-            tokenizer=local_tokenizer,
-            checkpoint=local_ckpt,
-            device=local_device,
-            test_df=test_df,
-            confusion_path=Path(
-                local_confusion_path
-                or OUTPUTS_DIR / "confusion_matrix_bert_local.png"
-            ),
-            error_path=Path(
-                local_error_path
-                or OUTPUTS_DIR / "error_analysis_bert_local.csv"
-            ),
+        results["local"] = run_evaluation_local_distilbert(
+            local_checkpoint_path=local_checkpoint_path,
+            local_vocab_path=local_vocab_path,
+            local_confusion_path=local_confusion_path,
+            local_error_path=local_error_path,
         )
 
     if evaluate_pretrained:
-        pretrained_model, pretrained_tokenizer, pretrained_ckpt, pretrained_device = (
-            load_pretrained_bert_bundle(checkpoint_path=pretrained_checkpoint_path)
-        )
-        results["pretrained"] = _run_single_distilbert_evaluation(
-            label="Pretrained DistilBERT",
-            model=pretrained_model,
-            tokenizer=pretrained_tokenizer,
-            checkpoint=pretrained_ckpt,
-            device=pretrained_device,
-            test_df=test_df,
-            confusion_path=Path(
-                pretrained_confusion_path
-                or OUTPUTS_DIR / "confusion_matrix_bert_pretrained.png"
-            ),
-            error_path=Path(
-                pretrained_error_path
-                or OUTPUTS_DIR / "error_analysis_bert_pretrained.csv"
-            ),
+        results["pretrained"] = run_evaluation_pretrained_distilbert(
+            pretrained_checkpoint_path=pretrained_checkpoint_path,
+            pretrained_confusion_path=pretrained_confusion_path,
+            pretrained_error_path=pretrained_error_path,
         )
 
-    if len(results) > 1:
-        print("\n" + "=" * 50)
-        print(f"{'Model':<24} {'Accuracy':>10} {'F1':>10}")
-        print("-" * 50)
-        if "local" in results:
-            print(
-                f"{'Local DistilBERT':<24} "
-                f"{results['local']['accuracy']:>10.4f} "
-                f"{results['local']['f1']:>10.4f}"
-            )
-        if "pretrained" in results:
-            print(
-                f"{'Pretrained DistilBERT':<24} "
-                f"{results['pretrained']['accuracy']:>10.4f} "
-                f"{results['pretrained']['f1']:>10.4f}"
-            )
-        print("=" * 50)
-
+    print_distilbert_comparison_table(results)
     return results
 
 
 if __name__ == "__main__":
     run_evaluation()
-    run_evaluation_distilbert()
+    from src.train_bert import (
+        CHECKPOINT_PATH as LOCAL_BERT_CHECKPOINT_PATH,
+        PRETRAINED_CHECKPOINT_PATH,
+    )
+
+    bert_results = {}
+
+    if not LOCAL_BERT_CHECKPOINT_PATH.exists():
+        print(
+            "Skipping DistilBERT evaluation: "
+            f"local checkpoint not found at {LOCAL_BERT_CHECKPOINT_PATH}"
+        )
+    else:
+        bert_results["local"] = run_evaluation_local_distilbert(
+            local_checkpoint_path=LOCAL_BERT_CHECKPOINT_PATH,
+        )
+
+    if PRETRAINED_CHECKPOINT_PATH.exists():
+        bert_results["pretrained"] = run_evaluation_pretrained_distilbert(
+            pretrained_checkpoint_path=PRETRAINED_CHECKPOINT_PATH,
+        )
+    else:
+        print(
+            "Skipping pretrained DistilBERT evaluation: "
+            f"checkpoint not found at {PRETRAINED_CHECKPOINT_PATH}"
+        )
+
+    print_distilbert_comparison_table(bert_results)
