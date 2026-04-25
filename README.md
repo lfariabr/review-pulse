@@ -85,6 +85,14 @@ Train the BiLSTM:
 python -m src.train
 ```
 
+Optional DistilBERT training:
+
+```bash
+python -m src.train_bert
+```
+
+Note: the local DistilBERT-style model can run fully offline, but the pretrained DistilBERT path in `src.train_bert` uses locally cached Hugging Face files only. Pre-download the `distilbert-base-uncased` model and tokenizer before running pretrained BERT training, or that part of the training run will be skipped/fail.
+
 ## Evaluate
 
 ```bash

@@ -259,6 +259,7 @@ def mask_tokens_for_mlm(
     pad_token_id: int,
     mask_token_id: int,
     vocab_size: int,
+    special_token_ids: Optional[set[int]] = None,
     mask_prob: float = PRETRAIN_MASK_PROB,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Apply dynamic MLM masking to a batch of token ids."""
@@ -281,12 +282,22 @@ def mask_tokens_for_mlm(
 
     indices_random = masked_indices & (replacement_probs >= 0.8) & (replacement_probs < 0.9)
     if indices_random.any() and vocab_size > 2:
-        random_words = torch.randint(
-            low=2,
-            high=vocab_size,
-            size=input_ids.shape,
-            device=input_ids.device,
-        )
+        # random_words = torch.randint(
+        #     low=2,
+        #     high=vocab_size,
+        #     size=input_ids.shape,
+        #     device=input_ids.device,
+        # )
+        # Sample, then resample positions that landed on special tokens.
+        forbidden = special_token_ids or {pad_token_id, mask_token_id}
+        random_words = torch.randint(0, vocab_size, size=input_ids.shape, device=input_ids.device)
+        for tid in forbidden:
+            collisions = (random_words == tid) & indices_random
+            while collisions.any():
+                random_words[collisions] = torch.randint(
+                    0, vocab_size, (int(collisions.sum().item()),), device=input_ids.device
+                )
+                collisions = (random_words == tid) & indices_random
         masked_inputs[indices_random] = random_words[indices_random]
 
     return masked_inputs, labels
@@ -502,7 +513,10 @@ def pretrain_local_bert(
                 "batch_size": current_batch_size,
                 "max_len": max_len,
             }
-        except torch.OutOfMemoryError:
+        # except torch.OutOfMemoryError:
+        except (getattr(torch, "OutOfMemoryError", torch.cuda.OutOfMemoryError), RuntimeError) as exc:
+            if "out of memory" not in str(exc).lower():
+                raise
             if device.type != "cuda" or current_batch_size <= 4:
                 raise
             torch.cuda.empty_cache()
@@ -650,6 +664,12 @@ def train_bert(
         pretrained_embeddings = load_glove(vocab, glove_path=glove_path)
         glove_used = True
         token_embedding_dim = int(pretrained_embeddings.shape[1])
+    elif use_glove:
+        print(
+            f"WARNING: use_glove=True but {glove_path} not found; "
+            "falling back to random embeddings.",
+            flush=True,
+        )
 
     model = DistilBERTSentiment(
         model_name=model_name,
@@ -1002,7 +1022,7 @@ if __name__ == "__main__":
     train_df, val_df, _ = preprocess(raw)
     load_time = time.perf_counter()
 
-    print(f"Data loaded and preprocessed in {load_time - start_time:.2f} seconds")
+    print(f"Data loaded and preprocessed in {load_time - start_time:.2f} seconds", flush=True)
     train_bert(train_df, val_df)
 
     if AutoTokenizer is not None:
@@ -1014,4 +1034,4 @@ if __name__ == "__main__":
     end_time = time.perf_counter()
     seconds = end_time - load_time
     minutes, remaining_seconds = divmod(seconds, 60)
-    print(f"Training time: {int(minutes)} minutes and {remaining_seconds:.2f} seconds")
+    print(f"Training time: {int(minutes)} minutes and {remaining_seconds:.2f} seconds", flush=True)
