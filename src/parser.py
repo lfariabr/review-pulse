@@ -45,6 +45,11 @@ def parse_review_file(filepath: Path, label: int) -> list[dict]:
     return records
 
 
+def _resolve_domain_path(data_dir: Path, domain_path: Path) -> Path:
+    """Resolve a domain path against a custom data directory when provided."""
+    return data_dir / domain_path.name if data_dir != DATA_DIR else domain_path
+
+
 def load_all_domains(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """Load positive and negative reviews from all 4 domains.
 
@@ -52,7 +57,7 @@ def load_all_domains(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """
     records = []
     for domain, domain_path in DOMAINS.items():
-        resolved = data_dir / domain_path.name if data_dir != DATA_DIR else domain_path
+        resolved = _resolve_domain_path(data_dir, domain_path)
         for filename, label in LABEL_MAP.items():
             filepath = resolved / filename
             if not filepath.exists():
@@ -75,7 +80,7 @@ def load_unlabeled_domains(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """
     records = []
     for domain, domain_path in DOMAINS.items():
-        resolved = data_dir / domain_path.name if data_dir != DATA_DIR else domain_path
+        resolved = _resolve_domain_path(data_dir, domain_path)
         filepath = resolved / UNLABELED_FILENAME
         if not filepath.exists():
             continue

@@ -11,6 +11,7 @@ This module exposes two DistilBERT-style tracks:
 from pathlib import Path
 from typing import Any, Optional
 import time
+import traceback
 
 import pandas as pd
 import torch
@@ -110,7 +111,7 @@ class LocalReviewTokenizer:
 
     def __init__(self, vocab: dict[str, int]) -> None:
         self.vocab = vocab
-        self.pad_token_id = vocab["<pad>"]
+        self.pad_token_id = vocab[PAD_TOKEN]
 
     def __call__(
         self,
@@ -351,6 +352,23 @@ def make_bert_dataloaders(
         f"(batch_size={batch_size}, max_len={max_len})"
     )
     return train_loader, val_loader, test_loader
+
+
+def make_bert_test_loader(
+    test_df: pd.DataFrame,
+    tokenizer: Any,
+    batch_size: int = BATCH_SIZE,
+    max_len: int = MAX_LEN,
+    seed: int = SEED,
+) -> DataLoader:
+    """Create the transformer test DataLoader with a single tokenization pass."""
+    del seed  # kept for API parity with make_bert_dataloaders
+    encodings = encode_texts(test_df["text"].tolist(), tokenizer, max_len=max_len)
+    return DataLoader(
+        BertReviewDataset(encodings, test_df["label"].tolist()),
+        batch_size=batch_size,
+        shuffle=False,
+    )
 
 
 def train_one_epoch_bert(
@@ -1028,8 +1046,16 @@ if __name__ == "__main__":
     if AutoTokenizer is not None:
         try:
             train_pretrained_bert(train_df, val_df)
-        except Exception as exc:  
-            print(f"Skipping pretrained DistilBERT training: {exc}")
+        except (
+            ImportError,
+            RuntimeError,
+            getattr(torch, "OutOfMemoryError", RuntimeError),
+        ) as exc:
+            print(
+                "Skipping pretrained DistilBERT training due to recoverable failure: "
+                f"{exc}"
+            )
+            traceback.print_exc()
 
     end_time = time.perf_counter()
     seconds = end_time - load_time

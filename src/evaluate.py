@@ -65,6 +65,16 @@ def collect_predictions(
     return np.array(all_labels), np.array(all_preds)
 
 
+def _classification_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
+    """Compute standard rounded classification metrics from predictions."""
+    acc = accuracy_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred, zero_division=0)
+    return {
+        "accuracy": round(acc, 4),
+        "f1": round(f1, 4),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Confusion matrix
 # ---------------------------------------------------------------------------
@@ -256,15 +266,13 @@ def _run_single_distilbert_evaluation(
     error_path: Path,
 ) -> dict:
     """Evaluate one DistilBERT-style model on the held-out test split."""
-    from src.train_bert import evaluate_epoch_bert, make_bert_dataloaders
+    from src.train_bert import make_bert_test_loader
 
     model_cfg = checkpoint.get("model_config", {})
     batch_size = int(model_cfg.get("batch_size", 64))
     max_len = int(model_cfg.get("max_len", 256))
 
-    _, _, test_loader = make_bert_dataloaders(
-        test_df,
-        test_df,
+    test_loader = make_bert_test_loader(
         test_df,
         tokenizer=tokenizer,
         batch_size=batch_size,
@@ -272,9 +280,8 @@ def _run_single_distilbert_evaluation(
         seed=42,
     )
 
-    criterion = torch.nn.BCEWithLogitsLoss()
-    metrics = evaluate_epoch_bert(model, test_loader, criterion, device)
     y_true, y_pred = collect_bert_predictions(model, test_loader, device)
+    metrics = _classification_metrics(y_true, y_pred)
 
     print(f"\n=== {label} — test ===")
     print(classification_report(y_true, y_pred, target_names=["negative", "positive"]))
