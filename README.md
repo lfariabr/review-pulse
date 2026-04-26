@@ -19,7 +19,9 @@ review-pulse/
     dataset.py         # vocab, GloVe loader, PyTorch Dataset/DataLoader
     baseline.py        # TF-IDF + LogisticRegression pipeline
     model.py           # BiLSTMSentiment nn.Module
+    model_bert.py      # Hugging Face DistilBERT classifier module
     train.py           # training loop + checkpointing
+    train_bert.py      # Hugging Face DistilBERT training flow
     inference.py       # predict_sentiment() shared by app and evaluate
     evaluate.py        # metrics, confusion matrix, error analysis
   tests/               # pytest test suite
@@ -91,7 +93,7 @@ Optional DistilBERT training:
 python -m src.train_bert
 ```
 
-Note: the local DistilBERT-style model can run fully offline, but the pretrained DistilBERT path in `src.train_bert` uses locally cached Hugging Face files only. Pre-download the `distilbert-base-uncased` model and tokenizer before running pretrained BERT training, or that part of the training run will be skipped/fail.
+Note: `src.train_bert` uses Hugging Face `distilbert-base-uncased`. The first run needs access to the model and tokenizer through the Hugging Face cache or network. If 'head_epochs' >= 'epochs' the training will be executed exclusively on the frozen encoder
 
 ## Evaluate
 

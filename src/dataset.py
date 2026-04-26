@@ -145,7 +145,8 @@ def load_glove(
                 embeddings[vocab[word]] = np.array(vector, dtype=np.float32)
                 found += 1
 
-    coverage = found / max(len(vocab) - 2, 1) * 100  # exclude PAD and UNK
+    n_special = sum(token in vocab for token in (PAD_TOKEN, UNK_TOKEN))
+    coverage = found / max(len(vocab) - n_special, 1) * 100
     print(
         f"load_glove: {found:,} / {len(vocab):,} vocab words initialised "
         f"from GloVe  ({coverage:.1f}% coverage)"

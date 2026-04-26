@@ -13,10 +13,12 @@ from src.evaluate import (
     error_analysis,
     load_checkpoint,
     plot_confusion_matrix,
+    run_evaluation_distilbert_deploy,
     run_evaluation_distilbert,
 )
 from src.model import BiLSTMSentiment
 from src.dataset import build_vocab, make_dataloaders
+from tiny_tokenizer import TinyTokenizer
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -220,14 +222,14 @@ def test_run_evaluation_returns_metrics():
 
 
 def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
-    """DistilBERT evaluation should return metric bundles for both model paths."""
+    """DistilBERT evaluation should return metrics for the HF checkpoint."""
     import src.parser as parser_module
     import src.preprocess as preprocess_module
     import src.train_bert as train_bert_module
 
     test_df = _small_df()
     vocab = build_vocab(test_df["text"], min_freq=1)
-    tokenizer = train_bert_module.load_tokenizer(vocab=vocab)
+    tokenizer = TinyTokenizer(vocab)
 
     class TinyBertClassifier(torch.nn.Module):
         def forward(self, input_ids, attention_mask):
@@ -244,16 +246,6 @@ def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
     monkeypatch.setattr(preprocess_module, "preprocess", lambda raw: (None, None, test_df))
     monkeypatch.setattr(
         train_bert_module,
-        "load_local_bert_bundle",
-        lambda checkpoint_path=None, vocab_path=None: (
-            TinyBertClassifier(),
-            tokenizer,
-            checkpoint,
-            torch.device("cpu"),
-        ),
-    )
-    monkeypatch.setattr(
-        train_bert_module,
         "load_pretrained_bert_bundle",
         lambda checkpoint_path=None: (
             TinyBertClassifier(),
@@ -264,17 +256,63 @@ def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
     )
 
     result = run_evaluation_distilbert(
-        local_confusion_path=tmp_path / "cm_local.png",
-        local_error_path=tmp_path / "errors_local.csv",
-        pretrained_confusion_path=tmp_path / "cm_pretrained.png",
-        pretrained_error_path=tmp_path / "errors_pretrained.csv",
+        confusion_path=tmp_path / "cm_distilbert.png",
+        error_path=tmp_path / "errors_distilbert.csv",
     )
 
-    assert "local" in result
-    assert "pretrained" in result
-    assert "accuracy" in result["local"]
-    assert "f1" in result["pretrained"]
-    assert (tmp_path / "cm_local.png").exists()
-    assert (tmp_path / "errors_local.csv").exists()
-    assert (tmp_path / "cm_pretrained.png").exists()
-    assert (tmp_path / "errors_pretrained.csv").exists()
+    assert "accuracy" in result
+    assert "f1" in result
+    assert result["best_val_f1"] == 0.8
+    assert (tmp_path / "cm_distilbert.png").exists()
+    assert (tmp_path / "errors_distilbert.csv").exists()
+
+
+def test_run_evaluation_distilbert_deploy_uses_deploy_checkpoint(monkeypatch, tmp_path):
+    """Deployment DistilBERT evaluation should load the compact deploy bundle."""
+    import src.parser as parser_module
+    import src.preprocess as preprocess_module
+    import src.evaluate as evaluate_module
+    import src.train_bert as train_bert_module
+
+    test_df = _small_df()
+    deploy_checkpoint = tmp_path / "distilbert_deploy" / "metadata.pt"
+    seen = {}
+    tokenizer = TinyTokenizer()
+
+    class TinyBertClassifier(torch.nn.Module):
+        def forward(self, input_ids, attention_mask):
+            del attention_mask
+            return torch.ones(input_ids.shape[0])
+
+    checkpoint = {
+        "model_config": {"batch_size": 4, "max_len": 16},
+        "best_val_f1": 0.8452,
+        "best_epoch": 4,
+    }
+
+    def fake_load_bundle(checkpoint_path=None):
+        seen["checkpoint_path"] = checkpoint_path
+        return TinyBertClassifier(), tokenizer, checkpoint, torch.device("cpu")
+
+    monkeypatch.setattr(parser_module, "load_all_domains", lambda: pd.DataFrame())
+    monkeypatch.setattr(preprocess_module, "preprocess", lambda raw: (None, None, test_df))
+    monkeypatch.setattr(
+        evaluate_module,
+        "DISTILBERT_DEPLOY_CHECKPOINT_PATH",
+        deploy_checkpoint,
+    )
+    monkeypatch.setattr(
+        train_bert_module,
+        "load_pretrained_bert_bundle",
+        fake_load_bundle,
+    )
+
+    result = run_evaluation_distilbert_deploy(
+        confusion_path=tmp_path / "cm_deploy.png",
+        error_path=tmp_path / "errors_deploy.csv",
+    )
+
+    assert seen["checkpoint_path"] == deploy_checkpoint
+    assert result["best_val_f1"] == 0.8452
+    assert (tmp_path / "cm_deploy.png").exists()
+    assert (tmp_path / "errors_deploy.csv").exists()
