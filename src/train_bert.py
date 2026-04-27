@@ -9,6 +9,7 @@ Usage:
     python -m src.train_bert
 """
 
+import logging
 from pathlib import Path
 from typing import Any, Optional
 import tempfile
@@ -36,6 +37,9 @@ except ImportError as exc:  # pragma: no cover - optional dependency
     _TRANSFORMERS_IMPORT_ERROR = exc
 else:
     _TRANSFORMERS_IMPORT_ERROR = None
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 EPOCHS = 5
@@ -649,8 +653,19 @@ def load_pretrained_bert_bundle(
         local_files_only=local_files_only,
     ).to(device)
 
+    # strict=False is intentional for torch_state_dict ckpt loads: ckpt may omit encoder weights for head_only/partial_encoder strategies, and the HF model supplies them.
     strict = ckpt.get("weights_format") != "torch_state_dict"
-    model.load_state_dict(ckpt["model_state"], strict=strict)
+    missing_keys, unexpected_keys = model.load_state_dict(
+        ckpt["model_state"],
+        strict=strict,
+    )
+    if missing_keys or unexpected_keys:
+        LOGGER.debug(
+            "load_pretrained_bert_bundle model.load_state_dict diagnostics for "
+            "ckpt['model_state']: missing_keys=%s unexpected_keys=%s",
+            missing_keys,
+            unexpected_keys,
+        )
     model.eval()
 
     tokenizer = _load_tokenizer_from_checkpoint(

@@ -43,6 +43,12 @@ def _load_bilstm():
     return load_bilstm_model()
 
 
+@st.cache_resource(show_spinner="Loading model…")
+def _load_distilbert():
+    from src.inference import load_distilbert_model
+    return load_distilbert_model()
+
+
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
@@ -59,6 +65,13 @@ st.divider()
 MODEL_OPTIONS = {
     "baseline": "TF-IDF + Logistic Regression  (recommended — best test F1)",
     "bilstm":   "BiLSTM + GloVe  (neural model)",
+    "distilbert": "DistilBERT_base_uncased  (Hugging Face model)",
+}
+
+MODEL_LOADERS = {
+    "baseline": _load_baseline,
+    "bilstm": _load_bilstm,
+    "distilbert": _load_distilbert,
 }
 
 model_name = st.radio(
@@ -69,11 +82,8 @@ model_name = st.radio(
     index=0,
 )
 
-# Warm up the selected model in the background
-if model_name == "baseline":
-    _load_baseline()
-else:
-    _load_bilstm()
+# Warm up the selected model in the background.
+MODEL_LOADERS[model_name]()
 
 # ---------------------------------------------------------------------------
 # Sample reviews
@@ -166,5 +176,6 @@ st.divider()
 st.caption(
     "Built for ISY503 Intelligent Systems · Torrens University · 2026‑T1  \n"
     "Baseline: TF-IDF + LogReg (test F1 81.9%)  \n"
-    "Neural: BiLSTM + GloVe (val F1 84.0%, test F1 80.3%)"
+    "Neural: BiLSTM + GloVe (val F1 84.0%, test F1 80.3%)  \n"
+    "Transformer: DistilBERT (val F1 87%, test F1 88%)"
 )
