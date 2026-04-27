@@ -230,6 +230,8 @@ def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
     test_df = _small_df()
     vocab = build_vocab(test_df["text"], min_freq=1)
     tokenizer = TinyTokenizer(vocab)
+    assert tokenizer.pad_token_id == vocab["<pad>"]
+    assert tokenizer.unk_token_id == vocab["<unk>"]
 
     class TinyBertClassifier(torch.nn.Module):
         def forward(self, input_ids, attention_mask):
@@ -271,7 +273,6 @@ def test_run_evaluation_distilbert_deploy_uses_deploy_checkpoint(monkeypatch, tm
     """Deployment DistilBERT evaluation should load the compact deploy bundle."""
     import src.parser as parser_module
     import src.preprocess as preprocess_module
-    import src.evaluate as evaluate_module
     import src.train_bert as train_bert_module
 
     test_df = _small_df()
@@ -297,8 +298,8 @@ def test_run_evaluation_distilbert_deploy_uses_deploy_checkpoint(monkeypatch, tm
     monkeypatch.setattr(parser_module, "load_all_domains", lambda: pd.DataFrame())
     monkeypatch.setattr(preprocess_module, "preprocess", lambda raw: (None, None, test_df))
     monkeypatch.setattr(
-        evaluate_module,
-        "DISTILBERT_DEPLOY_CHECKPOINT_PATH",
+        train_bert_module,
+        "DEPLOY_CHECKPOINT_PATH",
         deploy_checkpoint,
     )
     monkeypatch.setattr(

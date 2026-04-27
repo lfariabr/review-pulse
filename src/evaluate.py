@@ -38,7 +38,6 @@ VOCAB_PATH         = OUTPUTS_DIR / "vocab.json"
 CONFUSION_PNG      = OUTPUTS_DIR / "confusion_matrix.png"
 ERROR_CSV          = OUTPUTS_DIR / "error_analysis.csv"
 BASELINE_PATH      = OUTPUTS_DIR / "baseline.joblib"
-DISTILBERT_DEPLOY_CHECKPOINT_PATH = OUTPUTS_DIR / "distilbert.pt"
 
 
 # ---------------------------------------------------------------------------
@@ -353,8 +352,10 @@ def run_evaluation_distilbert_deploy(
     error_path: Optional[Path] = None,
 ) -> dict:
     """Evaluate the compact deployment DistilBERT bundle."""
+    from src.train_bert import DEPLOY_CHECKPOINT_PATH
+
     return run_evaluation_distilbert(
-        checkpoint_path=checkpoint_path or DISTILBERT_DEPLOY_CHECKPOINT_PATH,
+        checkpoint_path=checkpoint_path or DEPLOY_CHECKPOINT_PATH,
         confusion_path=confusion_path
         or OUTPUTS_DIR / "confusion_matrix_distilbert_deploy.png",
         error_path=error_path or OUTPUTS_DIR / "error_analysis_distilbert_deploy.csv",
@@ -362,24 +363,16 @@ def run_evaluation_distilbert_deploy(
     )
 
 def check_distilbert_and_evaluate():
-    from src.train_bert import CHECKPOINT_PATH as DISTILBERT_CHECKPOINT_PATH
+    from src.train_bert import DEPLOY_CHECKPOINT_PATH
 
-    if DISTILBERT_CHECKPOINT_PATH.exists():
-        run_evaluation_distilbert(checkpoint_path=DISTILBERT_CHECKPOINT_PATH)
-    else:
-        print(
-            "Skipping DistilBERT evaluation: "
-            f"checkpoint not found at {DISTILBERT_CHECKPOINT_PATH}"
-        )
-
-    if DISTILBERT_DEPLOY_CHECKPOINT_PATH.exists():
+    if DEPLOY_CHECKPOINT_PATH.exists():
         run_evaluation_distilbert_deploy(
-            checkpoint_path=DISTILBERT_DEPLOY_CHECKPOINT_PATH
+            checkpoint_path=DEPLOY_CHECKPOINT_PATH
         )
     else:
         print(
             "Skipping DistilBERT deployment evaluation: "
-            f"checkpoint not found at {DISTILBERT_DEPLOY_CHECKPOINT_PATH}"
+            f"checkpoint not found at {DEPLOY_CHECKPOINT_PATH}"
         )
 
 if __name__ == "__main__":

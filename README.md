@@ -93,7 +93,7 @@ Optional DistilBERT training:
 python -m src.train_bert
 ```
 
-Note: `src.train_bert` uses Hugging Face `distilbert-base-uncased`. The first run needs access to the model and tokenizer through the Hugging Face cache or network. If 'head_epochs' >= 'epochs' the training will be executed exclusively on the frozen encoder
+Note: `src.train_bert` uses Hugging Face `distilbert-base-uncased` and writes the deployment artifact to `outputs/distilbert.pt`. The first run needs access to the model and tokenizer through the Hugging Face cache or network. If `head_epochs >= epochs`, training runs only on the frozen encoder classifier head.
 
 ## Evaluate
 

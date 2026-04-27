@@ -4,7 +4,6 @@ Train Hugging Face DistilBERT for Amazon review sentiment analysis.
 By default, training freezes the DistilBERT encoder and trains only the classifier head, 
 then un-freezes the encoder for the last 2 layers and fine-tunes the full model,
 the trained model optimized for deployment is saved to outputs/distilbert.pt.
-additionally, the full model checkpoint with the best validation F1 is saved to outputs/distilbert_pretrained.pt
 
 Usage:
     python -m src.train_bert
@@ -19,7 +18,6 @@ import traceback
 import pandas as pd
 import torch
 import torch.nn as nn
-from safetensors.torch import load_file as load_safetensors
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader, Dataset
 
@@ -46,7 +44,6 @@ EPOCHS = 5
 LR = 2e-5
 HEAD_EPOCHS = 2
 HEAD_LR = 5e-4
-ENCODER_LR = LR
 CLASSIFIER_LR = 5e-5
 FINE_TUNE_LAST_N_LAYERS: Optional[int] = None
 CLIP = 1.0
@@ -58,11 +55,8 @@ SEED = 42
 FREEZE_ENCODER = True
 LOCAL_FILES_ONLY = False
 
-CHECKPOINT_PATH = OUTPUTS_DIR / "distilbert_pretrained.pt"
 DEPLOY_CHECKPOINT_PATH = OUTPUTS_DIR / "distilbert.pt"
 PRETRAINED_MODEL_NAME = PRETRAINED_DISTILBERT_MODEL_NAME
-PRETRAINED_LOCAL_FILES_ONLY = LOCAL_FILES_ONLY
-PRETRAINED_CHECKPOINT_PATH = CHECKPOINT_PATH
 
 
 def resolve_device(device: Optional[torch.device] = None) -> torch.device:
@@ -79,10 +73,8 @@ def resolve_device(device: Optional[torch.device] = None) -> torch.device:
 def load_tokenizer(
     model_name: str = MODEL_NAME,
     local_files_only: bool = LOCAL_FILES_ONLY,
-    **legacy_kwargs,
 ):
     """Load the Hugging Face tokenizer used by DistilBERT."""
-    del legacy_kwargs
     if AutoTokenizer is None:
         raise ImportError(
             "transformers is required for DistilBERT tokenization."
@@ -91,14 +83,6 @@ def load_tokenizer(
         model_name,
         local_files_only=local_files_only,
     )
-
-
-def load_pretrained_tokenizer(
-    model_name: str = PRETRAINED_MODEL_NAME,
-    local_files_only: bool = PRETRAINED_LOCAL_FILES_ONLY,
-):
-    """Backward-compatible alias for the Hugging Face tokenizer loader."""
-    return load_tokenizer(model_name=model_name, local_files_only=local_files_only)
 
 
 class BertReviewDataset(Dataset):
@@ -189,9 +173,10 @@ def train_one_epoch_bert(
     optimizer: torch.optim.Optimizer,
     criterion: nn.Module,
     clip: float = CLIP,
-    device: torch.device = torch.device("cpu"),
+    device: Optional[torch.device] = None,
 ) -> dict:
     """Run one training epoch for a DistilBERT classifier."""
+    device = torch.device("cpu") if device is None else resolve_device(device)
     model.train()
     total_loss = 0.0
 
@@ -216,9 +201,10 @@ def evaluate_epoch_bert(
     model: nn.Module,
     loader: DataLoader,
     criterion: nn.Module,
-    device: torch.device = torch.device("cpu"),
+    device: Optional[torch.device] = None,
 ) -> dict:
     """Evaluate a DistilBERT classifier on a dataloader."""
+    device = torch.device("cpu") if device is None else resolve_device(device)
     model.eval()
     total_loss = 0.0
     all_preds = []
@@ -297,7 +283,7 @@ def _save_checkpoint(
     *,
     checkpoint_path: Path,
     model: DistilBERTSentiment,
-    tokenizer: Any,
+    tokenizer_files: dict[str, bytes] | None,
     model_config: dict[str, Any],
     tokenizer_name: str,
     history: list[dict[str, Any]],
@@ -305,6 +291,12 @@ def _save_checkpoint(
     best_epoch: int,
     extra: Optional[dict[str, Any]] = None,
 ) -> None:
+    """Save fp16_state_dict for deployment inference, not resumable training.
+
+    _save_checkpoint casts weights to FP16, omits optimizer state, and can cause
+    precision, gradient, or overflow issues if used with resume_from-style
+    training.
+    """
     checkpoint_path = Path(checkpoint_path)
     state_dict = model.state_dict()
     state_dict = {
@@ -353,7 +345,7 @@ def _save_checkpoint(
     payload = {
         "model_config": model_config,
         "tokenizer_name": tokenizer_name,
-        "tokenizer_files": _serialize_tokenizer(tokenizer),
+        "tokenizer_files": tokenizer_files,
         "best_val_f1": best_val_f1,
         "best_epoch": best_epoch,
         "history": history,
@@ -441,7 +433,6 @@ def train_bert(
     checkpoint_path: Optional[Path] = None,
     seed: int = SEED,
     device: Optional[torch.device] = None,
-    **legacy_kwargs,
 ) -> dict:
     """Train Hugging Face DistilBERT and save the best checkpoint by val F1.
 
@@ -450,7 +441,6 @@ def train_bert(
     with separate encoder/head learning rates. Set ``freeze_encoder=False`` to
     skip the frozen-head warmup.
     """
-    del legacy_kwargs
     if epochs < 1:
         raise ValueError("epochs must be at least 1")
     if head_epochs < 0:
@@ -461,7 +451,7 @@ def train_bert(
     encoder_lr = lr if encoder_lr is None else encoder_lr
 
     device = resolve_device(device)
-    checkpoint_path = Path(checkpoint_path or CHECKPOINT_PATH)
+    checkpoint_path = Path(checkpoint_path or DEPLOY_CHECKPOINT_PATH)
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
     torch.manual_seed(seed)
@@ -469,6 +459,7 @@ def train_bert(
         torch.cuda.manual_seed_all(seed)
 
     tokenizer = load_tokenizer(model_name=model_name, local_files_only=local_files_only)
+    tokenizer_files = _serialize_tokenizer(tokenizer)
     train_loader, val_loader, _ = make_bert_dataloaders(
         train_df,
         val_df,
@@ -559,7 +550,7 @@ def train_bert(
                 _save_checkpoint(
                     checkpoint_path=checkpoint_path,
                     model=model,
-                    tokenizer=tokenizer,
+                    tokenizer_files=tokenizer_files,
                     model_config={
                         "model_type": "pretrained",
                         "model_name": model_name,
@@ -638,7 +629,7 @@ def load_pretrained_bert_bundle(
 ):
     """Load a saved Hugging Face DistilBERT checkpoint and tokenizer."""
     device = resolve_device(device)
-    checkpoint_path = Path(checkpoint_path or PRETRAINED_CHECKPOINT_PATH)
+    checkpoint_path = Path(checkpoint_path or DEPLOY_CHECKPOINT_PATH)
     if not checkpoint_path.exists():
         raise FileNotFoundError(
             f"DistilBERT checkpoint not found at {checkpoint_path}. "
@@ -657,16 +648,8 @@ def load_pretrained_bert_bundle(
         local_files_only=local_files_only,
     ).to(device)
 
-    if ckpt.get("weights_format") == "safetensors":
-        weights_path = Path(ckpt["weights_path"])
-        if not weights_path.is_absolute():
-            weights_path = checkpoint_path.parent / weights_path
-        state_dict = load_safetensors(weights_path)
-        strict = False
-        model.load_state_dict(state_dict, strict=strict)
-    else:
-        strict = ckpt.get("weights_format") != "torch_state_dict"
-        model.load_state_dict(ckpt["model_state"], strict=strict)
+    strict = ckpt.get("weights_format") != "torch_state_dict"
+    model.load_state_dict(ckpt["model_state"], strict=strict)
     model.eval()
 
     tokenizer = _load_tokenizer_from_checkpoint(
@@ -689,8 +672,20 @@ if __name__ == "__main__":
 
     print(f"Data loaded and preprocessed in {load_time - start_time:.2f} seconds", flush=True)
     try:
-        train_bert(train_df, val_df, head_epochs=10,head_lr=1e-4, epochs=12)
-        #Looks like magic numbers were used here, but they were actually the result of careful experimentation
+        # this paramaters are set for best balance of performance, artifact size, and training time on CPU/GPU
+        # expected accuracy is ~0.88 and F1 ~0.87 with these settings 
+        # but feel free to experiment with them
+        # for quick tests, set epochs=2, head_epochs=2, fine_tune_last_n_layers=0 to skip fine-tuning
+        # expected accuracy with 2 epochs and no fine-tuning is ~0.84 and F1 ~0.83
+        train_bert(
+            train_df,
+            val_df,
+            epochs=12,
+            head_epochs=10,
+            fine_tune_last_n_layers=2,
+            checkpoint_path=DEPLOY_CHECKPOINT_PATH,
+            head_lr=1e-4
+        )
     except (ImportError, RuntimeError) as exc:
         print(f"Skipping DistilBERT training due to recoverable failure: {exc}")
         traceback.print_exc()

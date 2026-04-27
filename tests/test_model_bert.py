@@ -109,5 +109,16 @@ def test_can_initialize_with_encoder_unfrozen(monkeypatch):
 
 def test_pretrained_alias_uses_same_implementation(monkeypatch):
     _patch_hf_model(monkeypatch)
+    assert PretrainedDistilBERTSentiment is DistilBERTSentiment
     m = PretrainedDistilBERTSentiment(dropout=0.0)
     assert isinstance(m, DistilBERTSentiment)
+
+
+def test_unexpected_constructor_keyword_raises(monkeypatch):
+    _patch_hf_model(monkeypatch)
+    try:
+        DistilBERTSentiment(freez_encoder=True)
+    except TypeError as exc:
+        assert "freez_encoder" in str(exc)
+    else:
+        raise AssertionError("unexpected kwargs should not be accepted")

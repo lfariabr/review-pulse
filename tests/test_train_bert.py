@@ -196,10 +196,40 @@ def test_train_bert_checkpoint_has_required_keys(monkeypatch, tmp_path):
     assert data["weights_dtype"] == "float16"
     assert data["save_strategy"] == "head_only"
     assert data["tokenizer_files"]
-    assert not (tmp_path / "distilbert.safetensors").exists()
 
 
-def test_head_only_checkpoint_saves_only_classifier_safetensors(monkeypatch, tmp_path):
+def test_train_bert_serializes_tokenizer_once(monkeypatch, tmp_path):
+    _patch_hf(monkeypatch)
+    df = _small_df()
+    ckpt = tmp_path / "distilbert.pt"
+    calls = []
+
+    original_serialize = train_bert_module._serialize_tokenizer
+
+    def counting_serialize(tokenizer):
+        calls.append(tokenizer)
+        return original_serialize(tokenizer)
+
+    monkeypatch.setattr(
+        train_bert_module,
+        "_serialize_tokenizer",
+        counting_serialize,
+    )
+
+    train_bert(
+        df,
+        df,
+        epochs=2,
+        batch_size=4,
+        max_len=16,
+        checkpoint_path=ckpt,
+    )
+
+    assert len(calls) == 1
+    assert torch.load(ckpt, weights_only=False)["tokenizer_files"]
+
+
+def test_head_only_checkpoint_saves_only_classifier_state(monkeypatch, tmp_path):
     _patch_hf(monkeypatch)
     df = _small_df()
     ckpt = tmp_path / "distilbert.pt"
@@ -223,7 +253,7 @@ def test_head_only_checkpoint_saves_only_classifier_safetensors(monkeypatch, tmp
     assert all(tensor.dtype == torch.float16 for tensor in weights.values())
 
 
-def test_full_finetune_checkpoint_saves_full_fp16_safetensors(monkeypatch, tmp_path):
+def test_full_finetune_checkpoint_saves_full_fp16_state(monkeypatch, tmp_path):
     _patch_hf(monkeypatch)
     df = _small_df()
     ckpt = tmp_path / "distilbert.pt"

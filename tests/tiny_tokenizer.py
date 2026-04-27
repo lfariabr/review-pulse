@@ -10,8 +10,17 @@ class TinyTokenizer:
 
     def __init__(self, vocab: dict[str, int] | None = None) -> None:
         self.vocab = vocab or {"[PAD]": 0, "[UNK]": 1}
-        self.pad_token_id = self.vocab.get("[PAD]", 0)
-        self.unk_token_id = self.vocab.get("[UNK]", 1)
+        self.pad_token_id = self._special_token_id("[PAD]", "<pad>", default=0)
+        self.unk_token_id = self._special_token_id("[UNK]", "<unk>", default=1)
+
+    def _special_token_id(
+        self,
+        hf_name: str,
+        project_name: str,
+        *,
+        default: int,
+    ) -> int:
+        return self.vocab.get(hf_name, self.vocab.get(project_name, default))
 
     def __call__(
         self,

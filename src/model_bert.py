@@ -16,14 +16,6 @@ PRETRAINED_DISTILBERT_MODEL_NAME = "distilbert-base-uncased"
 DISTILBERT_MODEL_NAME = PRETRAINED_DISTILBERT_MODEL_NAME
 BERT_DROPOUT = 0.2
 
-# Kept for older imports/configs. These are not used by the Hugging Face model.
-BERT_EMBEDDING_DIM = 768
-BERT_HEADS = 12
-BERT_LAYERS = 6
-BERT_FF_DIM = 3072
-DEFAULT_VOCAB_SIZE = 30_522
-DEFAULT_MAX_LEN = 256
-
 
 class DistilBERTSentiment(nn.Module):
     """Binary sentiment classifier backed by Hugging Face DistilBERT.
@@ -39,10 +31,8 @@ class DistilBERTSentiment(nn.Module):
         dropout: float = BERT_DROPOUT,
         freeze_encoder: bool = True,
         local_files_only: bool = False,
-        **legacy_kwargs,
     ) -> None:
         super().__init__()
-        del legacy_kwargs  # Accept old local-model kwargs without keeping local code.
 
         if DistilBertForSequenceClassification is None:
             raise ImportError(
@@ -111,5 +101,4 @@ class DistilBERTSentiment(nn.Module):
         return outputs.logits.squeeze(-1)
 
 
-class PretrainedDistilBERTSentiment(DistilBERTSentiment):
-    """Backward-compatible name for the Hugging Face DistilBERT classifier."""
+PretrainedDistilBERTSentiment = DistilBERTSentiment
