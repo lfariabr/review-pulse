@@ -2,7 +2,7 @@
 Train Hugging Face DistilBERT for Amazon review sentiment analysis.
 
 By default, training freezes the DistilBERT encoder and trains only the classifier head, 
-then un-freezes the encoder for the last 2 layers and fine-tunes the full model,
+then un-freezes the last 2 encoder layers for partial fine-tuning,
 the trained model optimized for deployment is saved to outputs/distilbert.pt.
 
 Usage:
@@ -45,7 +45,7 @@ LR = 2e-5
 HEAD_EPOCHS = 2
 HEAD_LR = 5e-4
 CLASSIFIER_LR = 5e-5
-FINE_TUNE_LAST_N_LAYERS: Optional[int] = None
+FINE_TUNE_LAST_N_LAYERS = 2
 CLIP = 1.0
 WEIGHT_DECAY = 0.01
 BATCH_SIZE = 16
@@ -437,9 +437,10 @@ def train_bert(
     """Train Hugging Face DistilBERT and save the best checkpoint by val F1.
 
     By default, stage 1 freezes the DistilBERT encoder and trains only the
-    classifier head. Stage 2 unfreezes the encoder and fine-tunes the full model
-    with separate encoder/head learning rates. Set ``freeze_encoder=False`` to
-    skip the frozen-head warmup.
+    classifier head. Stage 2 fine-tunes the final
+    ``fine_tune_last_n_layers`` encoder layers with separate encoder/head
+    learning rates. Pass ``fine_tune_last_n_layers=None`` to unfreeze the full
+    encoder.
     """
     if epochs < 1:
         raise ValueError("epochs must be at least 1")

@@ -57,6 +57,7 @@ class DistilBERTSentiment(nn.Module):
         """Freeze the pretrained DistilBERT encoder parameters."""
         for param in self.encoder.parameters():
             param.requires_grad = False
+        self.freeze_encoder = True
 
     def unfreeze_distilbert_encoder(self) -> None:
         """Unfreeze the pretrained DistilBERT encoder for full fine-tuning."""

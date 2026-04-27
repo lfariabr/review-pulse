@@ -82,6 +82,7 @@ def test_forward_output_is_finite(monkeypatch):
 
 def test_encoder_is_frozen_by_default_and_classifier_trainable(monkeypatch):
     m = _model(monkeypatch)
+    assert m.freeze_encoder is True
     assert not any(param.requires_grad for param in m.encoder.parameters())
     assert all(param.requires_grad for param in m.pre_classifier.parameters())
     assert all(param.requires_grad for param in m.classifier.parameters())
@@ -90,13 +91,22 @@ def test_encoder_is_frozen_by_default_and_classifier_trainable(monkeypatch):
 def test_can_unfreeze_encoder(monkeypatch):
     m = _model(monkeypatch)
     m.unfreeze_distilbert_encoder()
+    assert m.freeze_encoder is False
     assert all(param.requires_grad for param in m.encoder.parameters())
+
+
+def test_can_refreeze_encoder(monkeypatch):
+    m = _model(monkeypatch, freeze_encoder=False)
+    m.freeze_distilbert_encoder()
+    assert m.freeze_encoder is True
+    assert not any(param.requires_grad for param in m.encoder.parameters())
 
 
 def test_can_unfreeze_only_last_encoder_layers(monkeypatch):
     m = _model(monkeypatch)
     trainable_layers = m.unfreeze_last_encoder_layers(1)
 
+    assert m.freeze_encoder is False
     assert trainable_layers == [0]
     assert any(param.requires_grad for param in m.encoder.transformer.layer[0].parameters())
     assert not any(param.requires_grad for param in m.encoder.embeddings.parameters())

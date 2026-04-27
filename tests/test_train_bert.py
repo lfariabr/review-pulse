@@ -264,6 +264,7 @@ def test_full_finetune_checkpoint_saves_full_fp16_state(monkeypatch, tmp_path):
         epochs=1,
         head_epochs=0,
         freeze_encoder=False,
+        fine_tune_last_n_layers=None,
         batch_size=4,
         max_len=16,
         checkpoint_path=ckpt,
@@ -327,9 +328,10 @@ def test_train_bert_runs_head_then_fine_tune_stages(monkeypatch, tmp_path):
     stages = [row["stage"] for row in result["history"]]
     data = torch.load(ckpt, weights_only=False)
 
-    assert stages == ["head", "fine_tune"]
+    assert stages == ["head", "fine_tune_last_1"]
     assert data["model_config"]["head_epochs"] == 1
     assert data["model_config"]["fine_tune_epochs"] == 1
+    assert data["model_config"]["fine_tune_last_n_layers"] == 2
     assert "encoder_lr" in data["model_config"]
     assert "classifier_lr" in data["model_config"]
 
