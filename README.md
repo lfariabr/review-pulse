@@ -19,7 +19,9 @@ review-pulse/
     dataset.py         # vocab, GloVe loader, PyTorch Dataset/DataLoader
     baseline.py        # TF-IDF + LogisticRegression pipeline
     model.py           # BiLSTMSentiment nn.Module
+    model_bert.py      # Hugging Face DistilBERT classifier module
     train.py           # training loop + checkpointing
+    train_bert.py      # Hugging Face DistilBERT training flow
     inference.py       # predict_sentiment() shared by app and evaluate
     evaluate.py        # metrics, confusion matrix, error analysis
   tests/               # pytest test suite
@@ -84,6 +86,14 @@ Train the BiLSTM:
 ```bash
 python -m src.train
 ```
+
+Optional DistilBERT training:
+
+```bash
+python -m src.train_bert
+```
+
+Note: `src.train_bert` uses Hugging Face `distilbert-base-uncased` and writes the deployment artifact to `outputs/distilbert.pt`. The first run needs access to the model and tokenizer through the Hugging Face cache or network. If `head_epochs >= epochs`, training runs only on the frozen encoder classifier head.
 
 ## Evaluate
 
