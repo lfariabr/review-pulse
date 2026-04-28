@@ -13,6 +13,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from sklearn.metrics import f1_score, accuracy_score
+import time
 
 from src.dataset import (
     BATCH_SIZE,
@@ -257,6 +258,7 @@ def train(
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    start_time = time.perf_counter()
     from src.parser import load_all_domains
     from src.preprocess import preprocess
 
@@ -268,5 +270,9 @@ if __name__ == "__main__":
 
     glove_path = EMBEDDINGS_DIR / "glove.6B.100d.txt"
     pretrained = load_glove(vocab, glove_path) if glove_path.exists() else None
-
+    load_time = time.perf_counter()
+    print(f"Data loaded and preprocessed in {load_time - start_time:.2f} seconds", flush=True)
     train(train_df, val_df, vocab, pretrained_embeddings=pretrained)
+    end_time = time.perf_counter()
+    elapsed = end_time - load_time
+    print(f"Training-only time (excluding data load): {elapsed:.2f} seconds", flush=True)

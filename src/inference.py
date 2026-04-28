@@ -1,16 +1,17 @@
 """Inference module for ReviewPulse.
 
 Provides predict_sentiment() — a single entry point used by both app.py
-and evaluate.py. Supports two models:
+and evaluate.py. Supports three models:
 
     "baseline"  TF-IDF + Logistic Regression  (default — better test F1)
     "bilstm"    GloVe + BiLSTM                (satisfies neural-net requirement)
+    "distilbert" Hugging Face DistilBERT       (deployment transformer)
 
 Result shape:
     {
         "label":      "Positive review" | "Negative review",
         "confidence": float,   # probability of the predicted class
-        "model":      "baseline" | "bilstm",
+        "model":      "baseline" | "bilstm" | "distilbert",
     }
 """
 
@@ -75,6 +76,7 @@ def load_checkpoint(
 
 _baseline_cache = None
 _bilstm_cache   = None   # (model, vocab, device)
+_distilbert_cache = None  # (model, tokenizer, checkpoint, device)
 
 
 def load_baseline_model(path: Optional[Path] = None):
@@ -104,6 +106,21 @@ def load_bilstm_model(
         vocab = load_vocab(vocab_path or VOCAB_PATH)
         _bilstm_cache = (model, vocab, device)
     return _bilstm_cache
+
+
+def load_distilbert_model(checkpoint_path: Optional[Path] = None):
+    """Load and cache the deployed Hugging Face DistilBERT bundle."""
+    global _distilbert_cache
+    if _distilbert_cache is None:
+        from src.train_bert import (
+            DEPLOY_CHECKPOINT_PATH,
+            load_pretrained_bert_bundle,
+        )
+
+        _distilbert_cache = load_pretrained_bert_bundle(
+            checkpoint_path or DEPLOY_CHECKPOINT_PATH
+        )
+    return _distilbert_cache
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +182,48 @@ def predict_bilstm(
     return {"label": label, "confidence": round(confidence, 4), "model": "bilstm"}
 
 
+def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dict:
+    """Predict sentiment using the deployed Hugging Face DistilBERT model.
+
+    Args:
+        text:            Raw review text (cleaning applied internally).
+        checkpoint_path: Optional path to distilbert.pt.
+
+    Returns:
+        {"label": str, "confidence": float, "model": "distilbert"}
+    """
+    model, tokenizer, checkpoint, device = load_distilbert_model(checkpoint_path)
+    cleaned = clean_text(text)
+    max_len = int(checkpoint.get("model_config", {}).get("max_len", 256))
+
+    encoded = tokenizer(
+        [cleaned],
+        padding="max_length",
+        truncation=True,
+        max_length=max_len,
+        return_tensors="pt",
+    )
+    encoded = {key: value.to(device) for key, value in encoded.items()}
+
+    model.eval()
+    with torch.no_grad():
+        logit = model(
+            input_ids=encoded["input_ids"],
+            attention_mask=encoded["attention_mask"],
+        )
+        prob = torch.sigmoid(logit).item()
+
+    pred_idx = int(prob >= 0.5)
+    confidence = prob if pred_idx == 1 else 1.0 - prob
+    label = "Positive review" if pred_idx == 1 else "Negative review"
+
+    return {
+        "label": label,
+        "confidence": round(confidence, 4),
+        "model": "distilbert",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Unified entry point
 # ---------------------------------------------------------------------------
@@ -174,7 +233,7 @@ def predict_sentiment(text: str, model_name: str = "baseline") -> dict:
 
     Args:
         text:       Raw review text.
-        model_name: "baseline" (default) or "bilstm".
+        model_name: "baseline" (default), "bilstm", or "distilbert".
 
     Returns:
         {"label": "Positive review" | "Negative review",
@@ -187,8 +246,13 @@ def predict_sentiment(text: str, model_name: str = "baseline") -> dict:
         return predict_baseline(text)
     elif model_name == "bilstm":
         return predict_bilstm(text)
+    elif model_name == "distilbert":
+        return predict_distilbert(text)
     else:
-        raise ValueError(f"Unknown model '{model_name}'. Choose 'baseline' or 'bilstm'.")
+        raise ValueError(
+            f"Unknown model '{model_name}'. "
+            "Choose 'baseline', 'bilstm', or 'distilbert'."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +267,7 @@ if __name__ == "__main__":
     ]
 
     for text in samples:
-        for model_name in ("baseline", "bilstm"):
+        for model_name in ("baseline", "bilstm", "distilbert"):
             result = predict_sentiment(text, model_name=model_name)
             print(f"[{result['model']:>8}] {result['label']} "
                   f"({result['confidence']:.1%}) | {text[:60]}")

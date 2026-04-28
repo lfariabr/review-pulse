@@ -43,6 +43,15 @@ def _load_bilstm():
     return load_bilstm_model()
 
 
+@st.cache_resource(show_spinner="Loading model…")
+def _load_distilbert():
+    try:
+        from src.inference import load_distilbert_model
+        return load_distilbert_model()
+    except (ImportError, FileNotFoundError, RuntimeError):
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
@@ -59,6 +68,13 @@ st.divider()
 MODEL_OPTIONS = {
     "baseline": "TF-IDF + Logistic Regression  (recommended — best test F1)",
     "bilstm":   "BiLSTM + GloVe  (neural model)",
+    "distilbert": "DistilBERT_base_uncased  (Hugging Face model)",
+}
+
+MODEL_LOADERS = {
+    "baseline": _load_baseline,
+    "bilstm": _load_bilstm,
+    "distilbert": _load_distilbert,
 }
 
 model_name = st.radio(
@@ -69,11 +85,18 @@ model_name = st.radio(
     index=0,
 )
 
-# Warm up the selected model in the background
-if model_name == "baseline":
-    _load_baseline()
+# Warm up the selected model; check DistilBERT loaded successfully.
+_distilbert_available = True
+if model_name == "distilbert":
+    if _load_distilbert() is None:
+        _distilbert_available = False
+        st.warning(
+            "DistilBERT is currently unavailable — the checkpoint or `transformers` "
+            "dependency could not be loaded. Select **Baseline** or **BiLSTM** to continue.",
+            icon="⚠️",
+        )
 else:
-    _load_bilstm()
+    MODEL_LOADERS[model_name]()
 
 # ---------------------------------------------------------------------------
 # Sample reviews
@@ -135,7 +158,7 @@ classify = st.button(
 # Prediction
 # ---------------------------------------------------------------------------
 
-if classify and text.strip():
+if classify and text.strip() and _distilbert_available:
     from src.inference import predict_sentiment
 
     with st.spinner("Classifying…"):
@@ -166,5 +189,6 @@ st.divider()
 st.caption(
     "Built for ISY503 Intelligent Systems · Torrens University · 2026‑T1  \n"
     "Baseline: TF-IDF + LogReg (test F1 81.9%)  \n"
-    "Neural: BiLSTM + GloVe (val F1 84.0%, test F1 80.3%)"
+    "Neural: BiLSTM + GloVe (val F1 84.0%, test F1 80.3%)  \n"
+    "Transformer: DistilBERT (val F1 87.8%, test F1 88.6%)"
 )

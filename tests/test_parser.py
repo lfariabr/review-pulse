@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parser import load_all_domains, parse_review_file
+from src.parser import load_all_domains, load_unlabeled_domains, parse_review_file
 
 # Minimal pseudo-XML fixture — mirrors the real .review file format
 SAMPLE_VALID = """
@@ -99,3 +99,12 @@ def test_load_all_domains_count() -> None:
     df = load_all_domains()
     # 4 domains × 1,000 positive + 1,000 negative = 8,000
     assert len(df) >= 7_000  # lenient lower bound in case a few rows lack review_text
+
+
+def test_load_unlabeled_domains_schema() -> None:
+    df = load_unlabeled_domains()
+    assert isinstance(df, pd.DataFrame)
+    if not df.empty:
+        assert set(df.columns) >= {"text", "rating", "label", "domain", "source_file"}
+        assert set(df["label"].unique()) == {-1}
+        assert df["source_file"].eq("unlabeled.review").all()
