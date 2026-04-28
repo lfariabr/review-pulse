@@ -2,6 +2,9 @@
 
 """Tests for src/model_bert.py — Hugging Face DistilBERT sentiment model."""
 
+import pytest
+pytest.importorskip("transformers")
+
 import torch
 from transformers import DistilBertConfig, DistilBertForSequenceClassification
 

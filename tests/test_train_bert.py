@@ -2,6 +2,9 @@
 
 """Tests for src/train_bert.py — Hugging Face DistilBERT training loop."""
 
+import pytest
+pytest.importorskip("transformers")
+
 import pandas as pd
 import torch
 from transformers import DistilBertConfig, DistilBertForSequenceClassification
