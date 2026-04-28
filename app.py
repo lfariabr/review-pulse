@@ -45,8 +45,11 @@ def _load_bilstm():
 
 @st.cache_resource(show_spinner="Loading model…")
 def _load_distilbert():
-    from src.inference import load_distilbert_model
-    return load_distilbert_model()
+    try:
+        from src.inference import load_distilbert_model
+        return load_distilbert_model()
+    except (ImportError, FileNotFoundError, RuntimeError):
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -82,8 +85,18 @@ model_name = st.radio(
     index=0,
 )
 
-# Warm up the selected model in the background.
-MODEL_LOADERS[model_name]()
+# Warm up the selected model; check DistilBERT loaded successfully.
+_distilbert_available = True
+if model_name == "distilbert":
+    if _load_distilbert() is None:
+        _distilbert_available = False
+        st.warning(
+            "DistilBERT is currently unavailable — the checkpoint or `transformers` "
+            "dependency could not be loaded. Select **Baseline** or **BiLSTM** to continue.",
+            icon="⚠️",
+        )
+else:
+    MODEL_LOADERS[model_name]()
 
 # ---------------------------------------------------------------------------
 # Sample reviews
@@ -145,7 +158,7 @@ classify = st.button(
 # Prediction
 # ---------------------------------------------------------------------------
 
-if classify and text.strip():
+if classify and text.strip() and _distilbert_available:
     from src.inference import predict_sentiment
 
     with st.spinner("Classifying…"):
