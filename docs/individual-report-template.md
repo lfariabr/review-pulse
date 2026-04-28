@@ -58,33 +58,33 @@ I estimate my contribution at 60% as the primary technical implementer. Victor c
 - **Name:** Victor Meneses
 - **Student ID:** A00179705
 - **Slides presented:** 3, 8, 10 (Dataset · Error Analysis · Ethics & Limitations)
+- **Code contribution:** DistilBERT implementation (`src/model_bert.py`, `src/train_bert.py`, PR #22)
 
 ### Team Contribution Table
 
 | Team Member | Student ID | Main Contribution | % |
 |---|---|---|---:|
-| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 60% |
-| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 20% |
-| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 20% |
+| Luis Faria | A00187785 | Full v1.0.0 technical implementation, app, tests, docs, PR hardening | 60% |
+| Victor Meneses | A00179705 | DistilBERT implementation (v2.0.0), dataset analysis, error analysis, ethics presentation | 25% |
+| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 15% |
 | **Total** | | | **100%** |
 
 ### Draft Report (~250 words) — suggested content
 
-My primary contribution to ReviewPulse was presenting the dataset analysis, error analysis, and ethical considerations, and contributing to [any additional work: research, documentation, team coordination].
+My primary contribution to ReviewPulse was implementing the Hugging Face DistilBERT extension (v2.0.0) and presenting the dataset analysis, error analysis, and ethical considerations.
 
-I presented slides 3, 8, and 10. Slide 3 covers the Blitzer et al. (2007) dataset — 8,000 Amazon reviews across four domains (Books, DVDs, Electronics, Kitchen), perfectly balanced at 50/50 positive and negative, with labels derived from filenames rather than star ratings. I explained the stratified 70/15/15 split and the result of our label audit: zero ambiguous or conflicting rows, confirming the training signal is clean.
+On the technical side, I implemented `src/model_bert.py` — a wrapper around `distilbert-base-uncased` from Hugging Face — and `src/train_bert.py` — the full training loop with head-first fine-tuning, partial encoder unfreezing, and checkpoint serialisation to `outputs/distilbert.pt`. The training strategy freezes the DistilBERT encoder and trains the classification head first, then unfreezes the last two transformer layers for partial fine-tuning. The compact 29 MB checkpoint is integrated into the Streamlit app as a selectable third model. On the held-out test set, DistilBERT achieved 88.2% accuracy and 88.6% F1, outperforming both the TF-IDF baseline (81.9% F1) and the BiLSTM (80.3% F1) by a clear margin (Devlin et al., 2019).
 
-Slide 8 covers the 220 misclassified examples and their failure modes. Negation is a shared weakness — "not bad at all" gets predicted as Negative by both models because "bad" dominates the signal. Sarcasm produces low confidence near 50%, which is actually honest uncertainty rather than a hard error. Out-of-distribution text such as logistics reviews shows the limit of the training domain.
+I presented slides 3, 8, and 10. Slide 3 covers the Blitzer et al. (2007) dataset — 8,000 Amazon reviews across four domains, balanced at 50/50, with a zero-ambiguity label audit. Slide 8 covers the 220 misclassified examples across v1 models: negation, sarcasm, and out-of-distribution failure modes. Slide 10 addresses ethics: label noise, domain bias, dataset age, and deployment risk.
 
-Slide 10 addresses ethics: label noise risk from filename-based labelling, domain bias across only four product categories, uncalibrated BiLSTM confidence scores, the 20-year age of the dataset, and the deployment risk of using the app for high-stakes decisions without human review.
+An important ethical consideration I want to highlight is that DistilBERT confidence values remain uncalibrated — the model can output 95% confidence on incorrect predictions. Platt scaling is the recommended next step before any production use.
 
-An important ethical consideration I want to highlight is dataset age. The Blitzer et al. (2007) data was collected approximately 20 years ago; emoji, platform-specific slang, and short-form text are common today but absent from training. Periodic retraining on modern review data would reduce this distributional shift risk.
-
-I estimate my contribution at 20% covering dataset analysis, error analysis, and ethics. Luis contributed 60% as the primary technical implementer. Samiran contributed 20% covering the problem framing, live demo delivery, and future work.
+I estimate my contribution at 25%. Luis contributed 60% as the primary v1.0.0 implementer and PR hardening. Samiran contributed 15% covering problem framing, live demo delivery, and future work.
 
 ### APA References
 
 - Blitzer, J., Dredze, M., & Pereira, F. (2007). Biographies, Bollywood, Boom-boxes and Blenders: Domain adaptation for sentiment classification. In *Proceedings of the 45th Annual Meeting of the ACL* (pp. 440–447). ACL. https://aclanthology.org/P07-1056/
+- Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. In *Proceedings of NAACL-HLT 2019* (pp. 4171–4186). https://doi.org/10.18653/v1/N19-1423
 - Pang, B., & Lee, L. (2008). Opinion mining and sentiment analysis. *Foundations and Trends in Information Retrieval, 2*(1–2), 1–135. https://doi.org/10.1561/1500000011
 
 ---
@@ -101,9 +101,9 @@ I estimate my contribution at 20% covering dataset analysis, error analysis, and
 
 | Team Member | Student ID | Main Contribution | % |
 |---|---|---|---:|
-| Luis Faria | A00187785 | Full technical implementation, app, tests, docs | 60% |
-| Victor Meneses | A00179705 | Dataset, error analysis, ethics presentation | 20% |
-| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 20% |
+| Luis Faria | A00187785 | Full v1.0.0 technical implementation, app, tests, docs, PR hardening | 60% |
+| Victor Meneses | A00179705 | DistilBERT implementation (v2.0.0), dataset analysis, error analysis, ethics presentation | 25% |
+| Samiran Shrestha | A00106473 | Problem framing, live demo, future work | 15% |
 | **Total** | | | **100%** |
 
 ### Draft Report (~250 words) — suggested content
@@ -112,13 +112,13 @@ My primary contribution to ReviewPulse was framing the problem for the audience,
 
 I presented slides 2, 9, and 11. Slide 2 establishes the commercial motivation for sentiment analysis — product feedback loops, brand monitoring, recommendation systems — and articulates the core challenge: real reviews are messy. They vary in length from two words to over 800, span multiple domains, use negation ("not bad at all"), and employ sarcasm ("oh great, another broken product"). I framed our goal as building two systems and letting the data decide which one wins.
 
-Slide 9 is the live demo. I ran the Streamlit app live, demonstrating a clear positive, a clear negative, the negation failure mode, and the sarcasm case where both models sit near 50% confidence — which is honest uncertainty, not a hard error. I also showed the Generate button to load a random acceptance test case.
+Slide 9 is the live demo. I ran the Streamlit app live, demonstrating a clear positive, a clear negative, the negation failure mode, and the sarcasm case where both v1 models sit near 50% confidence — which is honest uncertainty, not a hard error. I also demonstrated the DistilBERT option, which handles the negation case more confidently due to its contextual pre-training. I showed the Generate button to load a random acceptance test case.
 
-Slide 11 presents four concrete next steps: DistilBERT or RoBERTa for contextual embeddings that would handle negation and sarcasm through attention; Platt scaling for confidence calibration; additional training domains to validate generalisation; and LIME for explainability.
+Slide 11 presents the next steps after DistilBERT (v2.0.0): RoBERTa for further accuracy gains; Platt scaling for confidence calibration; additional training domains; and LIME for explainability.
 
 An important ethical consideration I focused on is that binary sentiment classification is reductive. Real reviews express nuanced opinions — mixed, hedged, or ironic — that a positive/negative label cannot capture. Deploying a binary classifier in high-stakes contexts risks suppressing legitimate nuance.
 
-I estimate my contribution at 20% covering the problem framing, live demo delivery, and future work. Luis contributed 60% as the primary technical implementer. Victor contributed 20% covering dataset analysis, error analysis, and ethics.
+I estimate my contribution at 15% covering the problem framing, live demo delivery, and future work. Luis contributed 60% as the primary v1.0.0 implementer. Victor contributed 25% covering the DistilBERT implementation, dataset analysis, error analysis, and ethics.
 
 ### APA References
 

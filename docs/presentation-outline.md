@@ -145,22 +145,25 @@ Key design decision: **`pack_padded_sequence`** — LSTM processes only real wor
 
 **Content:**
 
-### Held-out test set
+### Held-out test set (1,159 reviews, seed=42)
 
 | Model | Accuracy | F1 |
 |---|---:|---:|
-| TF-IDF + Logistic Regression | **82.7%** | **81.9%** |
+| TF-IDF + Logistic Regression | 82.7% | 81.9% |
 | BiLSTM + GloVe | 81.0% | 80.3% |
+| **DistilBERT** (v2.0.0) | **88.2%** | **88.6%** |
 
-**Honest finding:** BiLSTM beat the baseline on **validation** (84.0% vs 83.2% F1) but the baseline generalised better on the **held-out test set**.
+**v1.0.0 honest finding:** BiLSTM beat the baseline on **validation** (84.0% vs 83.2% F1) but the baseline generalised better on the **held-out test set** — simpler model wins.
 
-> The BiLSTM satisfies the rubric requirement to *"define the network architecture and model class."* The comparison proves we understand when a neural model is and isn't the right tool.
+**v2.0.0 result:** DistilBERT clears both v1 models by a clear margin — 88.6% F1, 137 misclassified vs 220 for BiLSTM.
+
+> The BiLSTM satisfies the rubric requirement to *"define the network architecture and model class."* DistilBERT demonstrates how pretrained contextual embeddings change the result.
 
 **Speaker note:**
-> "Here's the honest result: on the held-out test set, the simpler model wins. TF-IDF at 81.9% F1, BiLSTM at 80.3%. The BiLSTM beat the baseline on validation — 84.0% vs 83.2% — but didn't generalise as well. This is a completely legitimate ML outcome. It means the BiLSTM overfit slightly to the validation distribution during the 10-epoch run. The takeaway is not that neural models are worse — it's that more training data, longer training, or better regularisation would likely flip this result. The BiLSTM fully satisfies the rubric requirement to define a neural architecture."
+> "Here's the full results picture. For v1: the simpler model wins on the held-out test set — TF-IDF 81.9% F1, BiLSTM 80.3%. The BiLSTM overfit slightly across 10 epochs — that's a legitimate ML outcome. For v2: DistilBERT clears both by a meaningful margin — 88.6% F1, 137 misclassified versus 220 for BiLSTM. The pretrained contextual embeddings give DistilBERT an understanding of word relationships our from-scratch models don't have. BiLSTM fully satisfies the rubric neural architecture requirement. DistilBERT shows what happens when you stand on the shoulders of pre-training."
 
 **Visual — 🍌 Nano Banana #6: Model Comparison Bar Chart**
-> Create a professional grouped bar chart in Lucidchart flowchart style, white background. X-axis: two groups "Accuracy" and "F1 Score". Each group has two bars: one dark blue labelled "TF-IDF Baseline" and one purple labelled "BiLSTM + GloVe". Values: Accuracy — TF-IDF 82.7%, BiLSTM 81.0%. F1 — TF-IDF 81.9%, BiLSTM 80.3%. Y-axis: 75% to 90%. Add value labels on top of each bar. Add a horizontal dashed line at 80% labelled "80% threshold". Title: "Model Comparison — Held-out Test Set". Legend top-right. Output as image.
+> Create a professional grouped bar chart in Lucidchart flowchart style, white background. X-axis: two groups "Accuracy" and "F1 Score". Each group has three bars: one dark blue labelled "TF-IDF Baseline", one purple labelled "BiLSTM + GloVe", one teal labelled "DistilBERT". Values: Accuracy — TF-IDF 82.7%, BiLSTM 81.0%, DistilBERT 88.2%. F1 — TF-IDF 81.9%, BiLSTM 80.3%, DistilBERT 88.6%. Y-axis: 75% to 95%. Add value labels on top of each bar. Add a horizontal dashed line at 80% labelled "80% threshold". Title: "Model Comparison — Held-out Test Set". Legend top-right. Output as image.
 
 *(~75s)*
 
@@ -201,12 +204,12 @@ streamlit run app.py
 Demo script (follow in order):
 1. **Clear positive:** *"This blender is incredible…"* → Positive ~98% (BiLSTM)
 2. **Clear negative:** *"Broke after two days…"* → Negative ~99%
-3. **Negation trap:** *"This is not bad at all"* → both predict Negative ← discuss
-4. **Sarcasm:** *"Oh great, another product that stopped working"* → low confidence ← discuss
+3. **Negation trap:** *"This is not bad at all"* → both v1 models predict Negative ← discuss; switch to DistilBERT ← discuss difference
+4. **Sarcasm:** *"Oh great, another product that stopped working"* → low confidence on v1 models ← discuss
 5. **💡 Generate** button — random sample
 
 **Speaker note:**
-> "Let's run the app live. [Open browser to localhost:8501] The sidebar shows our logo, the main panel has two model options — baseline is default, BiLSTM is optional. [Run case 1 — clear positive] High confidence, correct. [Run case 2 — clear negative] Both models agree, very high confidence. [Run case 3 — negation] Both predict Negative — this is the failure mode we just described. [Run case 4 — sarcasm] Notice the confidence drops to 52–64% — the model is uncertain, which is honest. [Hit Generate] This loads a random sample from our 10 acceptance test cases."
+> "Let's run the app live. [Open browser to localhost:8501] The sidebar shows our logo, the main panel has three model options — baseline is default, BiLSTM and DistilBERT are selectable. [Run case 1 — clear positive] High confidence, correct. [Run case 2 — clear negative] All three models agree, very high confidence. [Run case 3 — negation] Baseline and BiLSTM both predict Negative — this is the failure mode we described. Switch to DistilBERT and run the same review — contextual attention handles negation better. [Run case 4 — sarcasm] Notice baseline and BiLSTM confidence drops to 52–64% — the model is uncertain, which is honest. [Hit Generate] This loads a random sample from our acceptance test cases."
 
 **Visual:** Live app — no image prompt needed. Have `streamlit run app.py` already running before the presentation starts.
 
@@ -239,13 +242,15 @@ Demo script (follow in order):
 ## Slide 11 — Future Work (45s)
 
 **Content:**
-1. **DistilBERT / RoBERTa** — contextual embeddings for negation and sarcasm
-2. **Confidence calibration** — Platt scaling or temperature scaling on BiLSTM logits
-3. **More domains** — extend beyond the 4 Blitzer categories
+1. **RoBERTa** — larger pretrained transformer; likely to push F1 beyond 90%
+2. **Confidence calibration** — Platt scaling or temperature scaling; DistilBERT confidence is uncalibrated — 95% confidence ≠ 95% accuracy
+3. **More domains** — extend beyond the 4 Blitzer categories to validate generalisation
 4. **Explainability** — LIME or attention visualisation to show *why* the model predicted each label
 
+> DistilBERT (v2.0.0) is **shipped** — test F1 88.6%, live in the app. RoBERTa is the natural next step.
+
 **Speaker note:**
-> "Four clear next steps. DistilBERT would handle negation and sarcasm through contextual attention — it's the obvious upgrade. Calibration would make confidence scores trustworthy. More domains would validate generalisation. And LIME or attention visualisation would make the model explainable — which matters if you're presenting results to a non-technical stakeholder."
+> "Three clear next steps. DistilBERT is already shipped — 88.6% test F1, live in the app. RoBERTa would push further by scaling up pretraining. Confidence calibration is the most practically important next step: DistilBERT outputs 95% confidence on some wrong predictions — Platt scaling would make those scores trustworthy. More domains would validate generalisation beyond Books, DVDs, Electronics, and Kitchen. And LIME or attention visualisation would make the model explainable — which matters if you're presenting results to a non-technical stakeholder."
 
 **Visual:** Clean numbered list slide — no image prompt needed.
 
