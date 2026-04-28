@@ -159,10 +159,8 @@ def make_bert_test_loader(
     tokenizer: Any,
     batch_size: int = BATCH_SIZE,
     max_len: int = MAX_LEN,
-    seed: int = SEED,
 ) -> DataLoader:
     """Create the DistilBERT test DataLoader with one tokenization pass."""
-    del seed
     encodings = encode_texts(test_df["text"].tolist(), tokenizer, max_len=max_len)
     return DataLoader(
         BertReviewDataset(encodings, test_df["label"].tolist()),
@@ -180,7 +178,7 @@ def train_one_epoch_bert(
     device: Optional[torch.device] = None,
 ) -> dict:
     """Run one training epoch for a DistilBERT classifier."""
-    device = torch.device("cpu") if device is None else resolve_device(device)
+    device = resolve_device(device)
     model.train()
     total_loss = 0.0
 
@@ -208,7 +206,7 @@ def evaluate_epoch_bert(
     device: Optional[torch.device] = None,
 ) -> dict:
     """Evaluate a DistilBERT classifier on a dataloader."""
-    device = torch.device("cpu") if device is None else resolve_device(device)
+    device = resolve_device(device)
     model.eval()
     total_loss = 0.0
     all_preds = []
@@ -691,8 +689,8 @@ if __name__ == "__main__":
         # this paramaters are set for best balance of performance, artifact size, and training time on CPU/GPU
         # expected accuracy is ~0.88 and F1 ~0.87 with these settings 
         # but feel free to experiment with them
-        # for quick tests, set epochs=2, head_epochs=2, fine_tune_last_n_layers=0 to skip fine-tuning
-        # expected accuracy with 2 epochs and no fine-tuning is ~0.84 and F1 ~0.83
+        # for quick tests, set epochs=2, head_epochs=2, fine_tune_last_n_layers=1 to reduce training time
+        # expected accuracy with 2 epochs is ~0.84 and F1 ~0.83
         train_bert(
             train_df,
             val_df,
@@ -702,9 +700,15 @@ if __name__ == "__main__":
             checkpoint_path=DEPLOY_CHECKPOINT_PATH,
             head_lr=1e-4
         )
-    except (ImportError, RuntimeError) as exc:
-        print(f"Skipping DistilBERT training due to recoverable failure: {exc}")
+    except ImportError as exc:
+        print(f"Skipping DistilBERT training: missing dependency — {exc}")
         traceback.print_exc()
+    except RuntimeError as exc:
+        if "out of memory" in str(exc).lower():
+            print(f"Skipping DistilBERT training: GPU OOM — {exc}")
+            traceback.print_exc()
+        else:
+            raise
 
     end_time = time.perf_counter()
     seconds = end_time - load_time

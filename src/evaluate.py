@@ -277,7 +277,6 @@ def _run_distilbert_evaluation(
         tokenizer=tokenizer,
         batch_size=batch_size,
         max_len=max_len,
-        seed=42,
     )
 
     y_true, y_pred = collect_bert_predictions(model, test_loader, device)
@@ -362,7 +361,9 @@ def run_evaluation_distilbert_deploy(
         label="DistilBERT deploy",
     )
 
+
 def check_distilbert_and_evaluate():
+    """Run DistilBERT evaluation if the deploy checkpoint exists, otherwise skip."""
     from src.train_bert import DEPLOY_CHECKPOINT_PATH
 
     if DEPLOY_CHECKPOINT_PATH.exists():
