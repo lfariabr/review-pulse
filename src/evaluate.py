@@ -362,19 +362,22 @@ def run_evaluation_distilbert_deploy(
     )
 
 
+
 def check_distilbert_and_evaluate():
     """Run DistilBERT evaluation if the deploy checkpoint exists, otherwise skip."""
     from src.train_bert import DEPLOY_CHECKPOINT_PATH
 
-    if DEPLOY_CHECKPOINT_PATH.exists():
-        run_evaluation_distilbert_deploy(
-            checkpoint_path=DEPLOY_CHECKPOINT_PATH
-        )
-    else:
+    if not DEPLOY_CHECKPOINT_PATH.exists():
         print(
             "Skipping DistilBERT deployment evaluation: "
             f"checkpoint not found at {DEPLOY_CHECKPOINT_PATH}"
         )
+        return
+
+    try:
+        run_evaluation_distilbert_deploy(checkpoint_path=DEPLOY_CHECKPOINT_PATH)
+    except ImportError as exc:
+        print(f"Skipping DistilBERT evaluation: missing dependency — {exc}")
 
 if __name__ == "__main__":
     run_evaluation()

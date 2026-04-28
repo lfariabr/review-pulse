@@ -190,5 +190,5 @@ st.caption(
     "Built for ISY503 Intelligent Systems · Torrens University · 2026‑T1  \n"
     "Baseline: TF-IDF + LogReg (test F1 81.9%)  \n"
     "Neural: BiLSTM + GloVe (val F1 84.0%, test F1 80.3%)  \n"
-    "Transformer: DistilBERT (val F1 87%, test F1 88%)"
+    "Transformer: DistilBERT (val F1 87.8%, test F1 88.6%)"
 )

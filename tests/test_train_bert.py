@@ -134,13 +134,13 @@ def test_make_bert_dataloaders_returns_labelled_batches(monkeypatch):
 
 def test_train_one_epoch_bert_returns_positive_loss(monkeypatch):
     model, train_loader, _, optimizer, criterion = _fixtures(monkeypatch)
-    metrics = train_one_epoch_bert(model, train_loader, optimizer, criterion)
+    metrics = train_one_epoch_bert(model, train_loader, optimizer, criterion, device=torch.device("cpu"))
     assert metrics["loss"] > 0
 
 
 def test_evaluate_epoch_bert_returns_required_keys(monkeypatch):
     model, _, val_loader, _, criterion = _fixtures(monkeypatch)
-    metrics = evaluate_epoch_bert(model, val_loader, criterion)
+    metrics = evaluate_epoch_bert(model, val_loader, criterion, device=torch.device("cpu"))
     assert "loss" in metrics
     assert "accuracy" in metrics
     assert "f1" in metrics

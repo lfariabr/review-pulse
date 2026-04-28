@@ -258,4 +258,24 @@ Covered by existing docs — no separate files created:
 
 ---
 
-## Issues #20–21 — Pending
+## Issue #21 — Optional DistilBERT stretch ✅
+
+Implemented by Victor Meneses (PR #22), hardened by Luis (Issues #23–#26).
+
+**Training setup:** Hugging Face `distilbert-base-uncased`, frozen encoder for head-only training then partial fine-tuning of last 2 layers. Adam, BCEWithLogitsLoss, gradient clipping. 12 epochs head + fine-tune on MPS. Checkpoint saved to `outputs/distilbert.pt` (~29 MB).
+
+**Results on held-out test split (1,159 reviews, seed=42):**
+
+| Model | Accuracy | F1 | Misclassified |
+|---|---:|---:|---:|
+| TF-IDF + Logistic Regression | 82.7% | 81.9% | 201 |
+| BiLSTM + GloVe | 81.0% | 80.3% | 220 |
+| **DistilBERT** | **88.2%** | **88.6%** | **137** |
+
+Validation F1: **87.8%** (best epoch 12, `best_val_f1=0.8781` stored in checkpoint).
+
+**Known limitation:** confidence values remain uncalibrated — DistilBERT can output 95%+ confidence on incorrect predictions. Platt scaling or temperature scaling is the recommended next step before any production use.
+
+---
+
+## Issue #20 — Pending
