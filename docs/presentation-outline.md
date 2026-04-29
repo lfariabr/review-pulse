@@ -92,7 +92,7 @@ Key decision: **negation expansion** — *"wasn't good"* → *"was not good"* pr
 - `LogisticRegression(C=1.0, max_iter=1000)`
 - Fits in seconds — no GPU required
 
-### Model 2 — BiLSTM + GloVe (Neural)
+### Model 2 — BiLSTM + GloVe (Neural · v1.0.0)
 ```
 Token indices (batch × 256)
     → Embedding(15,924 tokens × 100d, GloVe init — 97.4% coverage)
@@ -104,11 +104,22 @@ Token indices (batch × 256)
 ```
 Key design decision: **`pack_padded_sequence`** — LSTM processes only real words, not zero-padded tokens.
 
+### Model 3 — DistilBERT (Transformer · v2.0.0)
+```
+Raw text
+    → HuggingFace AutoTokenizer (distilbert-base-uncased, max_len=256)
+    → DistilBertForSequenceClassification (pretrained 66M params)
+        ├─ Encoder frozen → head-only training (head_epochs=10)
+        └─ Last 2 encoder layers unfrozen → partial fine-tuning (epochs=12)
+    → Linear classifier head → raw logit
+```
+Key design decision: **frozen encoder first** — trains only the classification head before unfreezing the last 2 transformer layers to avoid catastrophic forgetting.
+
 **Speaker note:**
-> "We built two models. The baseline is TF-IDF plus Logistic Regression — fast, interpretable, no GPU. The neural model is a bidirectional LSTM initialised with GloVe 100-dimensional embeddings — 97.4% of our vocabulary is covered. The architecture has two layers and reads the sequence in both directions, concatenating the final forward and backward hidden states into a 512-dimensional representation before classification. One key engineering fix: we use pack_padded_sequence, which tells the LSTM to stop at each review's last real word — without it, the model wastes computation on padding zeros."
+> "We built three models. The baseline is TF-IDF plus Logistic Regression — fast, interpretable, no GPU. The v1 neural model is a bidirectional LSTM initialised with GloVe embeddings — 97.4% vocabulary coverage, pack_padded_sequence so the LSTM only processes real words. The v2 model is Hugging Face DistilBERT — a pretrained transformer with 66 million parameters that already understands English before we touch it. We fine-tune it in two stages: first the classification head only, then we unfreeze the last two encoder layers. That two-stage approach avoids catastrophic forgetting, where fine-tuning all layers at once can destroy the pretrained representations."
 
 **Visual — 🍌 Nano Banana #4: BiLSTM Architecture Diagram**
-> Create a professional neural network architecture diagram in Lucidchart flowchart style, white background. Vertical flow from bottom to top. Box 1 (dark navy, bottom): "Input — Token Indices (batch × 256)". Arrow up to Box 2 (blue): "Embedding Layer — 15,924 × 100d (GloVe init, 97.4% coverage)". Arrow up to Box 3 (blue): "Dropout (p=0.5)". Arrow up to Box 4 (purple, wider): "BiLSTM — hidden=256, layers=2, bidirectional · pack_padded_sequence". Inside Box 4 show two parallel horizontal arrows labelled "→ Forward" and "← Backward". Arrow up to Box 5 (blue): "Concat final hidden states (512d)". Arrow up to Box 6 (blue): "Dropout (p=0.5)". Arrow up to Box 7 (dark green, top): "Linear(512 → 1) → Raw logit → BCEWithLogitsLoss". Title: "BiLSTM + GloVe Architecture". Clean sans-serif font. Output as image.
+> Create a professional neural network architecture diagram in Lucidchart flowchart style, white background. Vertical flow from bottom to top. Box 1 (dark navy, bottom): "Input — Token Indices (batch × 256)". Arrow up to Box 2 (blue): "Embedding Layer — 15,924 × 100d (GloVe init, 97.4% coverage)". Arrow up to Box 3 (blue): "Dropout (p=0.5)". Arrow up to Box 4 (purple, wider): "BiLSTM — hidden=256, layers=2, bidirectional · pack_padded_sequence". Inside Box 4 show two parallel horizontal arrows labelled "→ Forward" and "← Backward". Arrow up to Box 5 (blue): "Concat final hidden states (512d)". Arrow up to Box 6 (blue): "Dropout (p=0.5)". Arrow up to Box 7 (dark green, top): "Linear(512 → 1) → Raw logit → BCEWithLogitsLoss". Title: "BiLSTM + GloVe Architecture (v1.0.0)". Clean sans-serif font. Output as image.
 
 *(~90s)*
 
@@ -117,25 +128,28 @@ Key design decision: **`pack_padded_sequence`** — LSTM processes only real wor
 ## Slide 6 — Training (60s)
 
 **Content:**
-- Optimizer: **Adam** (lr=1e-3)
-- Loss: **BCEWithLogitsLoss** (numerically stable sigmoid + BCE in one step)
-- Gradient clipping: max_norm=5.0
-- 10 epochs · checkpoint saved at best **val F1**
-- Device: Apple MPS (~20 min total vs ~160 min on CPU)
+
+### BiLSTM (v1.0.0)
+- Optimizer: **Adam** (lr=1e-3) · Loss: **BCEWithLogitsLoss** · Gradient clipping: max_norm=5.0
+- 10 epochs · checkpoint at best **val F1** · Device: Apple MPS
 
 | Epoch | Val Acc | Val F1 |
 |---|---|---|
 | 1 | 72.6% | 71.5% |
 | 5 | 78.8% | 80.8% |
-| 7 | 83.9% | 83.6% |
 | **9 ← best** | **84.3%** | **84.0%** |
 | 10 | 80.6% | 82.6% ↓ overfitting |
 
+### DistilBERT (v2.0.0)
+- Optimizer: **Adam** (lr=1e-4 head / 2e-5 encoder) · Loss: **BCEWithLogitsLoss** · ReduceLROnPlateau
+- Stage 1: 10 head-only epochs (encoder frozen) · Stage 2: 12 partial fine-tune epochs (last 2 layers)
+- Best checkpoint: **epoch 12 · val F1 = 87.8%**
+
 **Speaker note:**
-> "Training ran for 10 epochs using Adam with a learning rate of 1e-3 and gradient clipping at 5.0. We track val F1 — not accuracy — as the checkpoint criterion because F1 is more robust on binary classification tasks. The best checkpoint was saved at epoch 9. At epoch 10 you can see the val loss rising while training loss continues to fall — that's the textbook sign of overfitting, and exactly why we didn't just train to epoch 10."
+> "Both models use Adam and BCEWithLogitsLoss. For the BiLSTM: 10 epochs, val F1 as checkpoint criterion, best at epoch 9. At epoch 10 you can see overfitting — val loss rises while training loss keeps falling — exactly why we saved at 9. For DistilBERT: two-stage training. First, 10 epochs with the encoder frozen — only the classification head updates. Then we unfreeze the last two transformer layers for partial fine-tuning. This staged approach prevents catastrophic forgetting. Best checkpoint at epoch 12 with val F1 of 87.8%."
 
 **Visual — 🍌 Nano Banana #5: Training Curve**
-> Create a professional line chart in Lucidchart flowchart style, white background. X-axis: "Epoch" from 1 to 10. Y-axis: "F1 Score" from 0.65 to 0.90. Two lines: Line 1 (dark blue, solid): "Val F1" with data points at (1, 0.715), (2, 0.750), (3, 0.798), (4, 0.752), (5, 0.808), (6, 0.821), (7, 0.836), (8, 0.840), (9, 0.840), (10, 0.826). Line 2 (orange, dashed): "Train F1" rising steadily from 0.70 to 0.95 across epochs 1–10. Add a vertical dashed line at epoch 9 labelled "Best checkpoint saved". Add annotation at epoch 10: "↓ Overfitting". Title: "BiLSTM Training — Val F1 over 10 Epochs". Legend top-left. Output as image.
+> Create a professional line chart in Lucidchart flowchart style, white background. X-axis: "Epoch" from 1 to 10. Y-axis: "F1 Score" from 0.65 to 0.90. Two lines: Line 1 (dark blue, solid): "Val F1" with data points at (1, 0.715), (2, 0.750), (3, 0.798), (4, 0.752), (5, 0.808), (6, 0.821), (7, 0.836), (8, 0.840), (9, 0.840), (10, 0.826). Line 2 (orange, dashed): "Train F1" rising steadily from 0.70 to 0.95 across epochs 1–10. Add a vertical dashed line at epoch 9 labelled "Best checkpoint saved". Add annotation at epoch 10: "↓ Overfitting". Title: "BiLSTM Training — Val F1 over 10 Epochs (v1.0.0)". Legend top-left. Output as image.
 
 *(~60s)*
 
@@ -172,20 +186,21 @@ Key design decision: **`pack_padded_sequence`** — LSTM processes only real wor
 ## Slide 8 — Error Analysis (60s)
 
 **Content:**
-- 220 misclassified examples on the test set
-- Shared failure modes across **both** models:
+- v1 models (baseline + BiLSTM): **220 misclassified** on the test set
+- DistilBERT (v2.0.0): **137 misclassified** — 38% fewer errors
 
-| Failure type | Example | Why it fails |
+| Failure type | v1 models | DistilBERT |
 |---|---|---|
-| **Negation** | "not bad at all" → Negative | Double negation — both models predict wrong |
-| **Sarcasm** | "Oh great, stopped working after a week" | Near 50% confidence — irony not in training signal |
-| **Out-of-distribution** | Delivery/logistics text | Domain shift — model generalises the wrong features |
+| **Negation** ("not bad at all") | Both predict Negative ❌ | Handles better via contextual attention ✅ |
+| **Sarcasm** ("Oh great, stopped working…") | ~50–65% confidence ⚠️ | Still uncertain ⚠️ |
+| **Out-of-distribution** (logistics text) | Domain shift errors ⚠️ | Reduced but not eliminated ⚠️ |
 
 - BiLSTM: **overconfident on short inputs** ("It is okay" → 88% Negative)
 - TF-IDF: better **calibrated** near the decision boundary
+- DistilBERT: **best overall** but still confidently wrong on sarcasm
 
 **Speaker note:**
-> "Two hundred and twenty reviews were misclassified. The failure modes are instructive. Negation is a shared weakness — 'not bad at all' gets predicted as Negative by both models, because 'bad' dominates the signal. Sarcasm is the hardest case — the model sits near 50% confidence, which actually shows it's uncertain, not wrong in a bad way. Out-of-distribution text — like delivery logistics reviews — shows the limit of the training domain. BiLSTM is overconfident on short inputs; TF-IDF is better calibrated near the boundary. These failure modes motivate our future work."
+> "The v1 models misclassified 220 reviews. DistilBERT reduces that to 137 — 38% fewer errors. The failure modes are instructive. Negation is a shared weakness for v1: 'not bad at all' gets predicted as Negative because 'bad' dominates the signal. DistilBERT handles this better through contextual attention — it understands that 'not' modifies 'bad'. Sarcasm remains hard for all three models — confidence near 50% is actually honest uncertainty. Out-of-distribution text like logistics reviews still causes errors across the board, but DistilBERT's pretrained knowledge reduces the impact."
 
 **Visual — 🍌 Nano Banana #7: Error Failure Mode Table**
 > Create a professional three-column table diagram in Lucidchart flowchart style, white background. Three rows plus header. Header: "Failure Type" (dark navy) | "Example Review" (dark navy) | "Root Cause" (dark navy). Row 1 (light red background): "Negation" | '"not bad at all" → Negative ❌' | "Double negation confuses bag-of-words and sequence models". Row 2 (light orange background): "Sarcasm" | '"Oh great, stopped working after a week"' | "Irony not represented in training labels". Row 3 (light yellow background): "Out-of-distribution" | "Delivery logistics review" | "Domain shift beyond the 4 trained categories". Title above table: "ReviewPulse — Shared Failure Modes (220 misclassified)". Output as image.
@@ -226,12 +241,12 @@ Demo script (follow in order):
 | **Label quality** | Labels from filenames, not human raters — audited explicitly: 0 ambiguous rows |
 | **Domain bias** | 4 product categories only — generalisation to other domains is untested |
 | **Negation & sarcasm** | Systematic failure mode in both models |
-| **Confidence calibration** | BiLSTM logits are uncalibrated — 99% ≠ 99% accuracy |
+| **Confidence calibration** | BiLSTM and DistilBERT logits are uncalibrated — 99% confidence ≠ 99% accuracy |
 | **Dataset age** | Blitzer et al. 2007 — ~20-year-old reviews; language patterns may have shifted |
 | **Deployment risk** | App should not be used for high-stakes decisions without human review |
 
 **Speaker note:**
-> "Ethics is not an afterthought — it's part of the design. We audited labels explicitly and found zero conflicts. But the dataset is from 2007, which means the language of product reviews has shifted — emoji, slang, and platform conventions weren't in the training data. BiLSTM confidence values aren't calibrated — 98% confidence doesn't mean 98% accuracy. And the app is a demo, not a decision system. Any production deployment of a sentiment classifier needs human oversight, especially in high-stakes contexts like content moderation or product recalls."
+> "Ethics is not an afterthought — it's part of the design. We audited labels explicitly and found zero conflicts. But the dataset is from 2007, which means the language of product reviews has shifted — emoji, slang, and platform conventions weren't in the training data. Neither BiLSTM nor DistilBERT confidence values are calibrated — 98% confidence doesn't mean 98% accuracy. And the app is a demo, not a decision system. Any production deployment of a sentiment classifier needs human oversight, especially in high-stakes contexts like content moderation or product recalls."
 
 **Visual:** Use Slide 5 Nano Banana table format, no new image prompt needed. Ethics table fits cleanly as a formatted slide.
 
