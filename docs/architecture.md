@@ -21,7 +21,7 @@ review-pulse/
 │   ├── train_bert.py       ← DistilBERT training loop + checkpointing
 │   ├── evaluate.py         ← batch evaluation: metrics, confusion matrix, error analysis
 │   └── inference.py        ← single-text prediction; module-level model caching
-├── outputs/                ← model artifacts (gitignored except distilbert.pt)
+├── outputs/                ← committed model artifacts + generated evaluation reports (PNG/CSV gitignored)
 │   ├── baseline.joblib     ← trained TF-IDF + LogReg pipeline
 │   ├── vocab.json          ← BiLSTM vocabulary
 │   ├── bilstm.pt           ← BiLSTM checkpoint (epoch 9, val F1 84.0%)
@@ -271,7 +271,7 @@ The app does not import `src.train`, `src.baseline` (training path), or `src.par
 | `outputs/bilstm.pt` | `src/train.train()` | `src/inference.load_bilstm_model()`, `src/evaluate.run_evaluation()` | ~25 MB |
 | `outputs/distilbert.pt` | `src/train_bert.train_bert()` | `src/inference.load_distilbert_model()`, `src/evaluate.check_distilbert_and_evaluate()` | ~29 MB |
 
-`bilstm.pt` and `baseline.joblib` are gitignored. `distilbert.pt` is currently committed (tracked in Issue #28 for migration to external hosting).
+`outputs/` contains all four committed model artifacts. Generated evaluation reports (`*.png`, `*.csv`) are gitignored. Larger artifact hosting is tracked separately in Issues #28/#38.
 
 ---
 
