@@ -98,6 +98,18 @@ Inference (one text):
     predict_baseline()     — clean_text → pipeline.predict_proba → dict
 ```
 
+```mermaid
+flowchart LR
+    A([train_df.text]) --> B[build_pipeline\nTfidfVectorizer + LogReg]
+    B --> C[train_baseline]
+    C --> D[(outputs/baseline.joblib)]
+    D --> E[load_baseline_model\ncached]
+    F([raw text]) --> G[clean_text]
+    G --> E
+    E --> H[predict_proba]
+    H --> I([prediction dict])
+```
+
 ### 3.3 BiLSTM + GloVe
 
 ```
@@ -128,6 +140,23 @@ Inference (one text):
     predict_bilstm()       — clean_text → tokenize_and_pad → model → sigmoid → dict
 ```
 
+```mermaid
+flowchart LR
+    A([train_df.text]) --> B[build_vocab\nmin_freq=2]
+    B --> C[save_vocab\nvocab.json]
+    B --> D[load_glove\n100d vectors]
+    D --> E[make_dataloaders\ntokenize_and_pad]
+    E --> F[BiLSTMSentiment\nEmbedding → BiLSTM → Linear]
+    F --> G[train\nAdam · BCEWithLogitsLoss\ngrad clip · F1 ckpt]
+    G --> H[(outputs/bilstm.pt)]
+    H --> I[load_bilstm_model\ncached]
+    J([raw text]) --> K[clean_text]
+    K --> L[tokenize_and_pad]
+    L --> I
+    I --> M[sigmoid]
+    M --> N([prediction dict])
+```
+
 ### 3.4 DistilBERT (Hugging Face)
 
 ```
@@ -155,6 +184,22 @@ Inference (one text):
     load_distilbert_model()— load_pretrained_bert_bundle (model + tokenizer + checkpoint)
                              cached in _distilbert_cache
     predict_distilbert()   — clean_text → tokenizer → model → sigmoid → dict
+```
+
+```mermaid
+flowchart LR
+    A([train_df · val_df]) --> B[load_tokenizer\ndistilbert-base-uncased]
+    B --> C[make_bert_dataloaders\nencode_texts → BertReviewDataset]
+    C --> D[DistilBERTSentiment\nDistilBertForSequenceClassification]
+    D --> E[Stage 1\nfreeze encoder\ntrain head · 10 epochs]
+    E --> F[Stage 2\nunfreeze last 2 layers\nfine-tune · 12 epochs]
+    F --> G[(outputs/distilbert.pt\nval F1 87.8%)]
+    G --> H[load_distilbert_model\ncached]
+    I([raw text]) --> J[clean_text]
+    J --> K[tokenizer\nencode]
+    K --> H
+    H --> L[sigmoid]
+    L --> M([prediction dict])
 ```
 
 ---
