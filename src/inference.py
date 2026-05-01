@@ -224,6 +224,38 @@ _PREDICTORS: dict[str, Predictor] = {
 }
 
 
+def register_predictor(
+    name: str, predictor: Predictor, *, overwrite: bool = False
+) -> None:
+    """Register a new predictor under the given model name.
+
+    Allows adding future models (e.g. RoBERTa) without editing this module:
+
+        from src.inference import register_predictor
+        register_predictor("roberta", RoBERTaPredictor())
+
+    Raises:
+        TypeError:  If predictor does not implement the Predictor protocol.
+        ValueError: If name is already registered and overwrite=False.
+    """
+    if not isinstance(predictor, Predictor):
+        raise TypeError(
+            f"predictor must implement the Predictor protocol (needs a predict() method), "
+            f"got {type(predictor).__name__!r}"
+        )
+    if name in _PREDICTORS and not overwrite:
+        raise ValueError(
+            f"Predictor '{name}' is already registered. "
+            "Pass overwrite=True to replace it."
+        )
+    _PREDICTORS[name] = predictor
+
+
+def get_available_models() -> tuple[str, ...]:
+    """Return the names of all currently registered models."""
+    return tuple(_PREDICTORS.keys())
+
+
 # ---------------------------------------------------------------------------
 # Backward-compat flat functions (call concrete instances directly)
 # ---------------------------------------------------------------------------
@@ -269,7 +301,8 @@ def predict_sentiment(text: str, model_name: str = MODEL_BASELINE) -> dict:
     """
     if model_name not in _PREDICTORS:
         raise ValueError(
-            f"Unknown model '{model_name}'. Choose from {ALL_MODELS}."
+            f"Unknown model '{model_name}'. "
+            f"Available: {get_available_models()}."
         )
     return _PREDICTORS[model_name].predict(text)
 

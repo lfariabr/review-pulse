@@ -192,6 +192,59 @@ def test_predict_sentiment_invalid_model_raises(artefacts):
 
 
 # ---------------------------------------------------------------------------
+# register_predictor / get_available_models
+# ---------------------------------------------------------------------------
+
+class _DummyPredictor:
+    def predict(self, text: str) -> dict:
+        return {"label": "Positive review", "confidence": 1.0, "model": "dummy"}
+
+
+def test_get_available_models_contains_defaults():
+    from src.inference import get_available_models
+    models = get_available_models()
+    assert "baseline" in models
+    assert "bilstm" in models
+    assert "distilbert" in models
+
+
+def test_register_predictor_and_predict(artefacts):
+    import src.inference as inf_mod
+    from src.inference import register_predictor, predict_sentiment, get_available_models
+    # Clean up after test regardless of outcome
+    try:
+        register_predictor("dummy", _DummyPredictor())
+        assert "dummy" in get_available_models()
+        result = predict_sentiment("anything", model_name="dummy")
+        assert result["model"] == "dummy"
+    finally:
+        inf_mod._PREDICTORS.pop("dummy", None)
+
+
+def test_register_predictor_rejects_invalid_object():
+    from src.inference import register_predictor
+    with pytest.raises(TypeError, match="Predictor protocol"):
+        register_predictor("bad", object())
+
+
+def test_register_predictor_rejects_duplicate():
+    from src.inference import register_predictor
+    with pytest.raises(ValueError, match="already registered"):
+        register_predictor("baseline", _DummyPredictor())
+
+
+def test_register_predictor_overwrite_allowed():
+    import src.inference as inf_mod
+    from src.inference import register_predictor
+    original = inf_mod._PREDICTORS.get("baseline")
+    try:
+        register_predictor("baseline", _DummyPredictor(), overwrite=True)
+        assert inf_mod._PREDICTORS["baseline"] is not original
+    finally:
+        inf_mod._PREDICTORS["baseline"] = original
+
+
+# ---------------------------------------------------------------------------
 # integration — real saved artefacts
 # ---------------------------------------------------------------------------
 
