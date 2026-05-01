@@ -211,21 +211,26 @@ class DistilBERTPredictor:
         return {"label": label, "confidence": round(confidence, 4), "model": MODEL_DISTILBERT}
 
 
-# Registry — one instance per model, instantiated at module load
+# Named concrete instances — used by both the registry and the compat delegates
+_BASELINE_PREDICTOR   = BaselinePredictor()
+_BILSTM_PREDICTOR     = BiLSTMPredictor()
+_DISTILBERT_PREDICTOR = DistilBERTPredictor()
+
+# Registry — typed purely against the Protocol's single-text interface
 _PREDICTORS: dict[str, Predictor] = {
-    MODEL_BASELINE:   BaselinePredictor(),
-    MODEL_BILSTM:     BiLSTMPredictor(),
-    MODEL_DISTILBERT: DistilBERTPredictor(),
+    MODEL_BASELINE:   _BASELINE_PREDICTOR,
+    MODEL_BILSTM:     _BILSTM_PREDICTOR,
+    MODEL_DISTILBERT: _DISTILBERT_PREDICTOR,
 }
 
 
 # ---------------------------------------------------------------------------
-# Backward-compat flat functions (delegates to predictor classes)
+# Backward-compat flat functions (call concrete instances directly)
 # ---------------------------------------------------------------------------
 
 def predict_baseline(text: str, path: Optional[Path] = None) -> dict:
     """Predict sentiment using the TF-IDF baseline."""
-    return _PREDICTORS[MODEL_BASELINE].predict(text, path=path)
+    return _BASELINE_PREDICTOR.predict(text, path=path)
 
 
 def predict_bilstm(
@@ -234,14 +239,14 @@ def predict_bilstm(
     vocab_path: Optional[Path] = None,
 ) -> dict:
     """Predict sentiment using the BiLSTM model."""
-    return _PREDICTORS[MODEL_BILSTM].predict(
+    return _BILSTM_PREDICTOR.predict(
         text, checkpoint_path=checkpoint_path, vocab_path=vocab_path
     )
 
 
 def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dict:
     """Predict sentiment using the deployed DistilBERT model."""
-    return _PREDICTORS[MODEL_DISTILBERT].predict(text, checkpoint_path=checkpoint_path)
+    return _DISTILBERT_PREDICTOR.predict(text, checkpoint_path=checkpoint_path)
 
 
 # ---------------------------------------------------------------------------
