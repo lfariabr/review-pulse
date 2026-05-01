@@ -16,3 +16,5 @@ data/books
 data/dvd
 data/electronics
 data/kitchen_&_housewares
+docs/other
+.pytest_cache/

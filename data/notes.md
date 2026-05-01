@@ -76,7 +76,7 @@ The BiLSTM + GloVe path is the right main model. It's also more defensible in th
 ~~2.~~ Write the XML parser to extract reviews and ratings into a DataFrame.
 ~~3.~~ Clean and preprocess the text, assign binary labels, and drop 3-star reviews.
 ~~4.~~ Inspect the review length distribution to validate outlier removal thresholds.
-5. Implement the TF-IDF + Logistic Regression baseline, evaluate and report results.
-6. Build the BiLSTM model, train it, and evaluate.
-7. If time allows, fine-tune DistilBERT and evaluate on a held-out test set to demonstrate the HD criterion.
-8. Build the Streamlit app wrapping the inference function.
+~~5.~~ Implement the TF-IDF + Logistic Regression baseline, evaluate and report results.
+~~6.~~ Build the BiLSTM model, train it, and evaluate.
+~~7.~~ If time allows, fine-tune DistilBERT and evaluate on a held-out test set to demonstrate the HD criterion.
+~~8.~~ Build the Streamlit app wrapping the inference function.

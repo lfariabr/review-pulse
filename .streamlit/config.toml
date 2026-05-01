@@ -1,0 +1,5 @@
+[server]
+# Transformers' vision models import torchvision at module inspection time,
+# which Streamlit's default watchdog watcher triggers on hot-reload. Switching
+# to poll mode avoids traversing transformers' __path__ and silences the noise.
+fileWatcherType = "poll"

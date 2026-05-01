@@ -216,18 +216,26 @@ def load_pretrained_bert_bundle(
                 if not k.startswith("encoder.") and not k.startswith("model.distilbert.")
             ]
         elif save_strategy == "partial_encoder":
-            # Trainable layers were saved; only frozen encoder layers may be missing.
-            # Accept both alias paths for the same underlying module.
+            # _save_checkpoint always strips encoder.* (the alias path) and only
+            # saves model.distilbert.transformer.layer.N.* for trainable N.
+            # Allowed missing:
+            #   - All encoder.* keys (stripped at save time, alias never saved)
+            #   - model.distilbert.* keys for frozen layers (not in trainable_layers)
+            # Disallowed missing:
+            #   - model.distilbert.transformer.layer.N.* for trainable N (were saved)
+            #   - Any non-encoder, non-distilbert key (head weights should be loaded)
             trainable_layers = ckpt.get("trainable_encoder_layers", [])
-            trainable_prefixes = tuple(
-                f"{prefix}transformer.layer.{idx}."
+            model_distilbert_trainable_prefixes = tuple(
+                f"model.distilbert.transformer.layer.{idx}."
                 for idx in trainable_layers
-                for prefix in ("encoder.", "model.distilbert.")
             )
             disallowed = [
                 k for k in missing_keys
-                if (not k.startswith("encoder.") and not k.startswith("model.distilbert."))
-                or k.startswith(trainable_prefixes)
+                if not k.startswith("encoder.")
+                and (
+                    not k.startswith("model.distilbert.")
+                    or k.startswith(model_distilbert_trainable_prefixes)
+                )
             ]
         else:
             disallowed = list(missing_keys)
