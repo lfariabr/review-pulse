@@ -188,9 +188,9 @@ def load_pretrained_bert_bundle(
         local_files_only=local_files_only,
     ).to(device)
 
-    # strict=False: ckpt may omit encoder weights for head_only/partial_encoder
-    # strategies; the HF model supplies the frozen encoder weights.
-    strict = ckpt.get("weights_format") != "torch_state_dict"
+    # head_only / partial_encoder checkpoints omit frozen encoder weights;
+    # the HF model supplies them. Full checkpoints must match exactly.
+    strict = ckpt.get("save_strategy") not in ("head_only", "partial_encoder")
     missing_keys, unexpected_keys = model.load_state_dict(
         ckpt["model_state"], strict=strict
     )
