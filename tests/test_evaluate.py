@@ -10,6 +10,7 @@ import torch
 
 from src.evaluate import (
     collect_predictions,
+    compute_metrics,
     error_analysis,
     load_checkpoint,
     plot_confusion_matrix,
@@ -63,6 +64,47 @@ def _loader():
         df, df, df, vocab=vocab, batch_size=4, max_len=SEQ_LEN, seed=42
     )
     return loader
+
+
+# ---------------------------------------------------------------------------
+# matplotlib isolation — inference path must not pull in matplotlib
+# ---------------------------------------------------------------------------
+
+def test_inference_import_does_not_load_matplotlib():
+    import sys
+    # Remove cached modules to get a clean import check
+    mpl_before = {m for m in sys.modules if "matplotlib" in m}
+    import src.inference  # noqa: F401
+    mpl_after = {m for m in sys.modules if "matplotlib" in m}
+    assert mpl_after == mpl_before, (
+        f"Importing src.inference loaded matplotlib modules: {mpl_after - mpl_before}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# compute_metrics
+# ---------------------------------------------------------------------------
+
+def test_compute_metrics_perfect():
+    y = np.array([0, 1, 0, 1])
+    m = compute_metrics(y, y)
+    assert m["accuracy"] == 1.0
+    assert m["f1"] == 1.0
+
+
+def test_compute_metrics_all_wrong():
+    y_true = np.array([0, 0, 1, 1])
+    y_pred = np.array([1, 1, 0, 0])
+    m = compute_metrics(y_true, y_pred)
+    assert m["accuracy"] == 0.0
+
+
+def test_compute_metrics_returns_rounded_floats():
+    y_true = np.array([0, 1, 0, 1, 0])
+    y_pred = np.array([0, 1, 1, 1, 0])
+    m = compute_metrics(y_true, y_pred)
+    assert isinstance(m["accuracy"], float)
+    assert isinstance(m["f1"], float)
 
 
 # ---------------------------------------------------------------------------

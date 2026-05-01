@@ -50,7 +50,12 @@ def collect_predictions(
     loader: torch.utils.data.DataLoader,
     device: torch.device,
 ) -> tuple:
-    """Return (y_true, y_pred) numpy arrays for the full dataloader."""
+    """Return (y_true, y_pred) numpy arrays for the full dataloader.
+
+    Deliberate batch-only helper: inference.py handles single-text prediction
+    through the Predictor classes. Both paths share PRED_THRESHOLD from
+    src.config — the threshold never diverges.
+    """
     model.eval()
     all_preds  = []
     all_labels = []
@@ -66,14 +71,22 @@ def collect_predictions(
     return np.array(all_labels), np.array(all_preds)
 
 
-def _classification_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
-    """Compute standard rounded classification metrics from predictions."""
+def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
+    """Compute accuracy and F1 from binary prediction arrays.
+
+    Pure function — no side effects. Shared by BiLSTM and DistilBERT
+    evaluation paths.
+    """
     acc = accuracy_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred, zero_division=0)
     return {
         "accuracy": round(acc, 4),
         "f1": round(f1, 4),
     }
+
+
+# backward-compat alias used internally
+_classification_metrics = compute_metrics
 
 
 # ---------------------------------------------------------------------------
