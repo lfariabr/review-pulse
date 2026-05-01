@@ -190,15 +190,58 @@ def load_pretrained_bert_bundle(
 
     # head_only / partial_encoder checkpoints omit frozen encoder weights;
     # the HF model supplies them. Full checkpoints must match exactly.
-    strict = ckpt.get("save_strategy") not in ("head_only", "partial_encoder")
+    save_strategy = ckpt.get("save_strategy")
+    strict = save_strategy not in ("head_only", "partial_encoder")
     missing_keys, unexpected_keys = model.load_state_dict(
         ckpt["model_state"], strict=strict
     )
-    if missing_keys or unexpected_keys:
+
+    # Validate missing/unexpected keys against an allowlist derived from the
+    # save strategy. Fail fast on anything outside the expected pattern so
+    # corrupted or mismatched checkpoints don't load silently.
+    if unexpected_keys:
+        raise RuntimeError(
+            f"Checkpoint load failed: unexpected keys not present in the model "
+            f"— {unexpected_keys}. The checkpoint may be corrupt or from a "
+            f"different model architecture."
+        )
+
+    if missing_keys:
+        if save_strategy == "head_only":
+            # Only encoder weights should be missing (supplied by HF pretrained model).
+            # The model registers encoder weights under both "encoder.*" (self.encoder alias)
+            # and "model.distilbert.*" (via self.model); both prefixes are allowed missing.
+            disallowed = [
+                k for k in missing_keys
+                if not k.startswith("encoder.") and not k.startswith("model.distilbert.")
+            ]
+        elif save_strategy == "partial_encoder":
+            # Trainable layers were saved; only frozen encoder layers may be missing.
+            # Accept both alias paths for the same underlying module.
+            trainable_layers = ckpt.get("trainable_encoder_layers", [])
+            trainable_prefixes = tuple(
+                f"{prefix}transformer.layer.{idx}."
+                for idx in trainable_layers
+                for prefix in ("encoder.", "model.distilbert.")
+            )
+            disallowed = [
+                k for k in missing_keys
+                if (not k.startswith("encoder.") and not k.startswith("model.distilbert."))
+                or k.startswith(trainable_prefixes)
+            ]
+        else:
+            disallowed = list(missing_keys)
+
+        if disallowed:
+            raise RuntimeError(
+                f"Checkpoint load failed: missing keys outside the expected allowlist "
+                f"for save_strategy={save_strategy!r} — {disallowed}."
+            )
+
         LOGGER.debug(
-            "load_pretrained_bert_bundle diagnostics: "
-            "missing_keys=%s unexpected_keys=%s",
-            missing_keys, unexpected_keys,
+            "load_pretrained_bert_bundle: %d expected missing keys for "
+            "save_strategy=%r (encoder weights supplied by HF model).",
+            len(missing_keys), save_strategy,
         )
     model.eval()
 
