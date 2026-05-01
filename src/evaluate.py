@@ -248,7 +248,7 @@ def collect_bert_predictions(
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             logits = model(input_ids=input_ids, attention_mask=attention_mask)
-            preds = (torch.sigmoid(logits) >= 0.5).long().cpu()
+            preds = (torch.sigmoid(logits) >= PRED_THRESHOLD).long().cpu()
             all_preds.extend(preds.tolist())
             all_labels.extend(batch["labels"].long().tolist())
 

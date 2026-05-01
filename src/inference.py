@@ -235,7 +235,7 @@ def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dic
 # Unified entry point
 # ---------------------------------------------------------------------------
 
-def predict_sentiment(text: str, model_name: str = "baseline") -> dict:
+def predict_sentiment(text: str, model_name: str = MODEL_BASELINE) -> dict:
     """Predict the sentiment of a review.
 
     Args:
