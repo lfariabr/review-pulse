@@ -3,9 +3,9 @@
 Provides predict_sentiment() — a single entry point used by both app.py
 and evaluate.py. Supports three models:
 
-    "baseline"  TF-IDF + Logistic Regression  (default — better test F1)
-    "bilstm"    GloVe + BiLSTM                (satisfies neural-net requirement)
-    "distilbert" Hugging Face DistilBERT       (deployment transformer)
+    "baseline"   TF-IDF + Logistic Regression  (default — better test F1)
+    "bilstm"     GloVe + BiLSTM                (satisfies neural-net requirement)
+    "distilbert" Hugging Face DistilBERT        (deployment transformer)
 
 Result shape:
     {
@@ -16,7 +16,7 @@ Result shape:
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Protocol, runtime_checkable
 
 import torch
 
@@ -35,7 +35,7 @@ from src.dataset import load_vocab
 from src.model import BiLSTMSentiment
 from src.preprocess import clean_text
 
-CHECKPOINT_PATH      = BILSTM_CHECKPOINT_PATH
+CHECKPOINT_PATH        = BILSTM_CHECKPOINT_PATH
 DEPLOY_CHECKPOINT_PATH = DISTILBERT_PATH
 
 
@@ -84,9 +84,9 @@ def load_checkpoint(
 # Model loaders (cached at module level after first call)
 # ---------------------------------------------------------------------------
 
-_baseline_cache = None
-_bilstm_cache   = None   # (model, vocab, device)
-_distilbert_cache = None  # (model, tokenizer, checkpoint, device)
+_baseline_cache   = None
+_bilstm_cache     = None   # (model, vocab, device)
+_distilbert_cache = None   # (model, tokenizer, checkpoint, device)
 
 
 def load_baseline_model(path: Optional[Path] = None):
@@ -131,28 +131,106 @@ def load_distilbert_model(checkpoint_path: Optional[Path] = None):
 
 
 # ---------------------------------------------------------------------------
-# Per-model prediction helpers
+# Predictor protocol + per-model implementations
+# ---------------------------------------------------------------------------
+
+@runtime_checkable
+class Predictor(Protocol):
+    """Single-text sentiment predictor interface."""
+
+    def predict(self, text: str) -> dict:
+        """Return {"label": str, "confidence": float, "model": str}."""
+        ...
+
+
+class BaselinePredictor:
+    """TF-IDF + Logistic Regression predictor."""
+
+    def predict(self, text: str, path: Optional[Path] = None) -> dict:
+        pipeline  = load_baseline_model(path)
+        cleaned   = clean_text(text)
+        proba     = pipeline.predict_proba([cleaned])[0]
+        pred_idx  = int(proba.argmax())
+        confidence = float(proba[pred_idx])
+        label     = "Positive review" if pred_idx == 1 else "Negative review"
+        return {"label": label, "confidence": round(confidence, 4), "model": MODEL_BASELINE}
+
+
+class BiLSTMPredictor:
+    """BiLSTM + GloVe predictor."""
+
+    def predict(
+        self,
+        text: str,
+        checkpoint_path: Optional[Path] = None,
+        vocab_path: Optional[Path] = None,
+    ) -> dict:
+        from src.dataset import tokenize_and_pad, MAX_LEN
+
+        model, vocab, device = load_bilstm_model(checkpoint_path, vocab_path)
+        cleaned = clean_text(text)
+        tokens  = tokenize_and_pad([cleaned], vocab, max_len=MAX_LEN).to(device)
+
+        model.eval()
+        with torch.no_grad():
+            prob = torch.sigmoid(model(tokens)).item()
+
+        pred_idx   = int(prob >= PRED_THRESHOLD)
+        confidence = prob if pred_idx == 1 else 1.0 - prob
+        label      = "Positive review" if pred_idx == 1 else "Negative review"
+        return {"label": label, "confidence": round(confidence, 4), "model": MODEL_BILSTM}
+
+
+class DistilBERTPredictor:
+    """Hugging Face DistilBERT predictor."""
+
+    def predict(self, text: str, checkpoint_path: Optional[Path] = None) -> dict:
+        model, tokenizer, checkpoint, device = load_distilbert_model(checkpoint_path)
+        cleaned = clean_text(text)
+        max_len = int(checkpoint.get("model_config", {}).get("max_len", 256))
+
+        encoded = tokenizer(
+            [cleaned],
+            padding="max_length",
+            truncation=True,
+            max_length=max_len,
+            return_tensors="pt",
+        )
+        encoded = {k: v.to(device) for k, v in encoded.items()}
+
+        model.eval()
+        with torch.no_grad():
+            prob = torch.sigmoid(
+                model(input_ids=encoded["input_ids"],
+                      attention_mask=encoded["attention_mask"])
+            ).item()
+
+        pred_idx   = int(prob >= PRED_THRESHOLD)
+        confidence = prob if pred_idx == 1 else 1.0 - prob
+        label      = "Positive review" if pred_idx == 1 else "Negative review"
+        return {"label": label, "confidence": round(confidence, 4), "model": MODEL_DISTILBERT}
+
+
+# Named concrete instances — used by both the registry and the compat delegates
+_BASELINE_PREDICTOR   = BaselinePredictor()
+_BILSTM_PREDICTOR     = BiLSTMPredictor()
+_DISTILBERT_PREDICTOR = DistilBERTPredictor()
+
+# Registry — typed purely against the Protocol's single-text interface
+_PREDICTORS: dict[str, Predictor] = {
+    MODEL_BASELINE:   _BASELINE_PREDICTOR,
+    MODEL_BILSTM:     _BILSTM_PREDICTOR,
+    MODEL_DISTILBERT: _DISTILBERT_PREDICTOR,
+}
+
+
+# ---------------------------------------------------------------------------
+# Backward-compat flat functions (call concrete instances directly)
 # ---------------------------------------------------------------------------
 
 def predict_baseline(text: str, path: Optional[Path] = None) -> dict:
-    """Predict sentiment using the TF-IDF baseline.
-
-    Args:
-        text: Raw review text (cleaning applied internally).
-        path: Optional path to a saved baseline.joblib.
-
-    Returns:
-        {"label": str, "confidence": float, "model": "baseline"}
-    """
-    pipeline = load_baseline_model(path)
-    cleaned  = clean_text(text)
-
-    proba     = pipeline.predict_proba([cleaned])[0]   # [neg_prob, pos_prob]
-    pred_idx  = int(proba.argmax())
-    confidence = float(proba[pred_idx])
-    label      = "Positive review" if pred_idx == 1 else "Negative review"
-
-    return {"label": label, "confidence": round(confidence, 4), "model": MODEL_BASELINE}
+    """Predict sentiment using the TF-IDF baseline."""
+    return _BASELINE_PREDICTOR.predict(text, path=path)
 
 
 def predict_bilstm(
@@ -160,75 +238,15 @@ def predict_bilstm(
     checkpoint_path: Optional[Path] = None,
     vocab_path: Optional[Path] = None,
 ) -> dict:
-    """Predict sentiment using the BiLSTM model.
-
-    Args:
-        text:            Raw review text (cleaning applied internally).
-        checkpoint_path: Optional path to bilstm.pt.
-        vocab_path:      Optional path to vocab.json.
-
-    Returns:
-        {"label": str, "confidence": float, "model": "bilstm"}
-    """
-    from src.dataset import tokenize_and_pad, MAX_LEN
-
-    model, vocab, device = load_bilstm_model(checkpoint_path, vocab_path)
-    cleaned = clean_text(text)
-
-    tokens = tokenize_and_pad([cleaned], vocab, max_len=MAX_LEN).to(device)
-
-    model.eval()
-    with torch.no_grad():
-        logit = model(tokens)                          # (1,)
-        prob  = torch.sigmoid(logit).item()
-
-    pred_idx   = int(prob >= PRED_THRESHOLD)
-    confidence = prob if pred_idx == 1 else 1.0 - prob
-    label      = "Positive review" if pred_idx == 1 else "Negative review"
-
-    return {"label": label, "confidence": round(confidence, 4), "model": MODEL_BILSTM}
+    """Predict sentiment using the BiLSTM model."""
+    return _BILSTM_PREDICTOR.predict(
+        text, checkpoint_path=checkpoint_path, vocab_path=vocab_path
+    )
 
 
 def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dict:
-    """Predict sentiment using the deployed Hugging Face DistilBERT model.
-
-    Args:
-        text:            Raw review text (cleaning applied internally).
-        checkpoint_path: Optional path to distilbert.pt.
-
-    Returns:
-        {"label": str, "confidence": float, "model": "distilbert"}
-    """
-    model, tokenizer, checkpoint, device = load_distilbert_model(checkpoint_path)
-    cleaned = clean_text(text)
-    max_len = int(checkpoint.get("model_config", {}).get("max_len", 256))
-
-    encoded = tokenizer(
-        [cleaned],
-        padding="max_length",
-        truncation=True,
-        max_length=max_len,
-        return_tensors="pt",
-    )
-    encoded = {key: value.to(device) for key, value in encoded.items()}
-
-    model.eval()
-    with torch.no_grad():
-        logit = model(
-            input_ids=encoded["input_ids"],
-            attention_mask=encoded["attention_mask"],
-        )
-        prob = torch.sigmoid(logit).item()
-
-    pred_idx = int(prob >= PRED_THRESHOLD)
-    confidence = prob if pred_idx == 1 else 1.0 - prob
-    label = "Positive review" if pred_idx == 1 else "Negative review"
-
-    return {
-        "label": label,
-        "confidence": round(confidence, 4),
-        "model": MODEL_DISTILBERT,
-    }
+    """Predict sentiment using the deployed DistilBERT model."""
+    return _DISTILBERT_PREDICTOR.predict(text, checkpoint_path=checkpoint_path)
 
 
 # ---------------------------------------------------------------------------
@@ -249,16 +267,11 @@ def predict_sentiment(text: str, model_name: str = MODEL_BASELINE) -> dict:
     Raises:
         ValueError: If model_name is not recognised.
     """
-    if model_name == MODEL_BASELINE:
-        return predict_baseline(text)
-    elif model_name == MODEL_BILSTM:
-        return predict_bilstm(text)
-    elif model_name == MODEL_DISTILBERT:
-        return predict_distilbert(text)
-    else:
+    if model_name not in _PREDICTORS:
         raise ValueError(
             f"Unknown model '{model_name}'. Choose from {ALL_MODELS}."
         )
+    return _PREDICTORS[model_name].predict(text)
 
 
 # ---------------------------------------------------------------------------
