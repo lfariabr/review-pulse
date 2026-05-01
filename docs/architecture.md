@@ -8,8 +8,10 @@
 
 ```
 review-pulse/
-├── app.py                  ← Streamlit UI (orchestration only)
+├── app.py                  ← Streamlit UI (layout + input + result display only)
 ├── src/
+│   ├── config.py           ← single source of truth: paths, model name constants, threshold
+│   ├── app_service.py      ← cached model loaders + DistilBERT availability helpers for app.py
 │   ├── parser.py           ← raw data → DataFrame
 │   ├── preprocess.py       ← cleaning, auditing, splitting
 │   ├── dataset.py          ← vocab, GloVe loader, PyTorch Dataset + DataLoaders
@@ -18,21 +20,25 @@ review-pulse/
 │   ├── model.py            ← BiLSTMSentiment nn.Module
 │   ├── train.py            ← BiLSTM training loop + checkpointing
 │   ├── model_bert.py       ← DistilBERTSentiment nn.Module (HF wrapper)
-│   ├── train_bert.py       ← DistilBERT training loop + checkpointing
+│   ├── dataset_bert.py     ← DistilBERT tokenizer, BertReviewDataset, DataLoader factories
+│   ├── checkpoint_bert.py  ← DistilBERT checkpoint serialization and bundle loading
+│   ├── train_bert.py       ← DistilBERT training loop + stage orchestration
 │   ├── evaluate.py         ← batch evaluation: metrics, confusion matrix, error analysis
-│   └── inference.py        ← single-text prediction; module-level model caching
+│   ├── inference.py        ← single-text prediction; module-level model caching
+│   └── utils/
+│       └── samples.py      ← demo review samples for Streamlit app
 ├── outputs/                ← committed model artifacts + generated evaluation reports (PNG/CSV gitignored)
 │   ├── baseline.joblib     ← trained TF-IDF + LogReg pipeline
 │   ├── vocab.json          ← BiLSTM vocabulary
 │   ├── bilstm.pt           ← BiLSTM checkpoint (epoch 9, val F1 84.0%)
-│   └── distilbert.pt       ← DistilBERT checkpoint (epoch 12, val F1 87.8%)
+│   └── distilbert.pt       ← DistilBERT compact checkpoint (epoch 12, val F1 87.8%)
 ├── data/                   ← raw Blitzer et al. 2007 review files (not in git)
 │   ├── books/
 │   ├── dvd/
 │   ├── electronics/
 │   └── kitchen_&_housewares/
 ├── embeddings/             ← GloVe vectors (not in git, ~800 MB)
-├── tests/                  ← 143 unit tests + 5 slow integration tests
+├── tests/                  ← 165 unit tests + 5 slow integration tests
 └── docs/                   ← project documentation
 ```
 
@@ -253,32 +259,182 @@ Verified results (held-out test split, 1,159 reviews, seed=42):
 streamlit run app.py
 ```
 
-`app.py` is UI orchestration only. It:
-- calls `_load_baseline()`, `_load_bilstm()`, `_load_distilbert()` via `@st.cache_resource` — each wraps the corresponding `src.inference` loader
-- calls `predict_sentiment(text, model_name)` on button click
-- catches `ImportError / FileNotFoundError / RuntimeError` from DistilBERT loading and shows a warning instead of crashing
+`app.py` is UI layout only. Model loading is delegated to `src/app_service.py`:
 
-The app does not import `src.train`, `src.baseline` (training path), or `src.parser` directly.
+| Symbol | Purpose |
+|---|---|
+| `load_baseline()` | `@st.cache_resource` wrapper around `src.inference.load_baseline_model()` |
+| `load_bilstm()` | `@st.cache_resource` wrapper around `src.inference.load_bilstm_model()` |
+| `load_distilbert()` | `@st.cache_resource` wrapper; catches `ImportError`, `FileNotFoundError`, `RuntimeError`, `OSError` and returns `None` instead of crashing |
+| `warm_up_model(name)` | triggers cached loading for the selected model; returns `False` if unavailable |
+| `is_distilbert_available()` | returns `True` only when the checkpoint and `transformers` both load cleanly |
+
+`app.py` calls `predict_sentiment(text, model_name)` on classify and renders the result. It does not import `src.train`, `src.baseline`, or `src.parser` directly.
 
 ---
 
-## 7. Model Artifacts
+## 7. Model Artifact Policy
 
-| Artifact | Produced by | Consumed by | Size |
-|---|---|---|---|
-| `outputs/vocab.json` | `src/dataset.save_vocab()` | `src/inference.load_bilstm_model()` | ~350 KB |
-| `outputs/baseline.joblib` | `src/baseline.train_baseline()` | `src/inference.load_baseline_model()` | ~5 MB |
-| `outputs/bilstm.pt` | `src/train.train()` | `src/inference.load_bilstm_model()`, `src/evaluate.run_evaluation()` | ~25 MB |
-| `outputs/distilbert.pt` | `src/train_bert.train_bert()` | `src/inference.load_distilbert_model()`, `src/evaluate.check_distilbert_and_evaluate()` | ~29 MB |
+All four trained artifacts live in `outputs/` and are committed to git. Generated evaluation reports (`*.png`, `*.csv`) are gitignored. Larger artifact hosting (CDN / webserver) is tracked in Issue #28.
 
-`outputs/` contains all four committed model artifacts. Generated evaluation reports (`*.png`, `*.csv`) are gitignored. Larger artifact hosting is tracked separately in Issues #28/#38.
+### 7.1 Artifact inventory
+
+| Artifact | Size | Committed | Self-contained |
+|---|---:|:---:|:---:|
+| `outputs/vocab.json` | ~350 KB | ✅ | ✅ |
+| `outputs/baseline.joblib` | ~5 MB | ✅ | ✅ |
+| `outputs/bilstm.pt` | ~25 MB | ✅ | ✅ |
+| `outputs/distilbert.pt` | ~29 MB | ✅ | ⚠️ partial |
+
+**Self-contained** means the artifact contains everything needed for inference without downloading additional files. `distilbert.pt` is partial because it embeds only the classification head (and, for `partial_encoder` saves, the fine-tuned encoder layers); the frozen encoder weights are loaded from `distilbert-base-uncased` on HuggingFace Hub at inference time.
+
+---
+
+### 7.2 Per-artifact details
+
+#### `outputs/vocab.json`
+
+| Field | Value |
+|---|---|
+| Produced by | `src/dataset.py → save_vocab()` |
+| Consumed by | `src/inference.py → load_bilstm_model()` |
+| Format | JSON mapping `token → int index` |
+| Contains | All tokens with `min_freq ≥ 2` in `train_df`, plus `<pad>` and `<unk>` |
+| Reproducible | Yes — fixed `seed=42`, deterministic vocab build from same train split |
+| Caveats | Built from `train_df` only (no leakage). Adding new training data changes indexes; checkpoint must be retrained in sync. |
+
+#### `outputs/baseline.joblib`
+
+| Field | Value |
+|---|---|
+| Produced by | `src/baseline.py → train_baseline()` |
+| Consumed by | `src/inference.py → load_baseline_model()` |
+| Format | `joblib`-serialised `sklearn.pipeline.Pipeline` (TfidfVectorizer + LogisticRegression) |
+| Security | `joblib.load` can execute arbitrary Python during deserialization. Only load from trusted sources. |
+| Caveats | Serialization format is scikit-learn version–sensitive. Upgrading sklearn may break loading. |
+
+#### `outputs/bilstm.pt`
+
+| Field | Value |
+|---|---|
+| Produced by | `src/train.py → train()` |
+| Consumed by | `src/inference.py → load_bilstm_model()`, `src/evaluate.py → run_evaluation()` |
+| Format | `torch.save` dict: `model_state`, `model_config`, `vocab_path`, `best_val_f1`, `best_epoch`, `history` |
+| Security | `torch.load(..., weights_only=False)` — can execute arbitrary Python from a malicious file. Only load from trusted sources. |
+| Contains | Full FP32 state dict for all layers (BiLSTM + embedding + head). Weights only; no optimizer state. |
+| Caveats | Requires `vocab.json` at the path stored in `vocab_path`. Moving `vocab.json` without retraining requires patching the checkpoint dict. |
+
+#### `outputs/distilbert.pt`
+
+| Field | Value |
+|---|---|
+| Produced by | `src/train_bert.py → train_bert()` via `src/checkpoint_bert.py → _save_checkpoint()` |
+| Consumed by | `src/inference.py → load_distilbert_model()`, `src/evaluate.py → check_distilbert_and_evaluate()` |
+| Format | `torch.save` dict — see §7.3 |
+| Security | `torch.load(..., weights_only=False)` — same trust requirement as `bilstm.pt`. |
+| Self-contained | ⚠️ No. The frozen encoder weights (~66 MB) are NOT embedded. They are downloaded from HuggingFace Hub at inference time using `local_files_only=False`. With `local_files_only=True` the encoder must already be in the HF cache. |
+| Caveats | See §8 for full model card. |
+
+---
+
+### 7.3 DistilBERT checkpoint format
+
+`distilbert.pt` is a dict with the following keys:
+
+| Key | Type | Description |
+|---|---|---|
+| `model_config` | `dict` | Training hyperparameters: `model_name`, `dropout`, `freeze_encoder`, `max_len`, `batch_size`, `head_epochs`, `fine_tune_epochs`, `fine_tune_last_n_layers`, `head_lr`, `encoder_lr`, `classifier_lr`, `local_files_only`, `num_labels` |
+| `model_state` | `dict[str, Tensor]` | FP16 state dict. Contents depend on `save_strategy` (see below). |
+| `weights_format` | `str` | Always `"torch_state_dict"` |
+| `weights_dtype` | `str` | Always `"float16"` |
+| `save_strategy` | `str` | One of `"head_only"`, `"partial_encoder"`, `"full"` |
+| `trainable_encoder_layers` | `list[int]` | Layer indexes that were fine-tuned (relevant for `partial_encoder`) |
+| `tokenizer_files` | `dict[str, bytes]` | Serialized tokenizer files embedded in the checkpoint |
+| `tokenizer_name` | `str` | HuggingFace model identifier used for tokenizer fallback |
+| `best_val_f1` | `float` | Best validation F1 at checkpoint time |
+| `best_epoch` | `int` | Epoch that achieved `best_val_f1` |
+| `history` | `list[dict]` | Per-epoch metrics for all training stages |
+
+**Save strategy — what weights are stored:**
+
+| Strategy | When | Stored weights |
+|---|---|---|
+| `head_only` | All encoder layers frozen during the best epoch | Classification head only (`model.pre_classifier.*`, `model.classifier.*`) |
+| `partial_encoder` | Some encoder layers unfrozen | Head + fine-tuned encoder layers (`model.distilbert.transformer.layer.N.*` for trainable N) |
+| `full` | All encoder layers unfrozen | Full model state dict |
+
+At load time, frozen encoder weights are re-supplied by `DistilBertForSequenceClassification.from_pretrained(model_name)`. `model.load_state_dict(strict=False)` is used for `head_only` and `partial_encoder`; the missing-key allowlist is validated explicitly to catch corrupt or mismatched checkpoints.
+
+---
+
+## 8. DistilBERT Model Card
+
+### 8.1 Training setup
+
+| Parameter | Value |
+|---|---|
+| Base model | `distilbert-base-uncased` (HuggingFace) |
+| Task | Binary sentiment classification (positive / negative) |
+| Dataset | Blitzer et al. 2007, 4 domains: Books, DVD, Electronics, Kitchen |
+| Train / Val / Test split | 5,404 / 1,158 / 1,159 (stratified 70/15/15, seed=42) |
+| Stage 1 (head only) | 10 epochs, head_lr=1e-4, encoder frozen |
+| Stage 2 (partial fine-tune) | 2 epochs, encoder_lr=2e-5, classifier_lr=5e-5, last 2 encoder layers unfrozen |
+| Loss | `BCEWithLogitsLoss` (binary) |
+| Optimizer | AdamW, weight_decay=0.01 |
+| Grad clip | 1.0 |
+| Max sequence length | 256 tokens |
+| Batch size | 16 |
+| Dropout | 0.2 |
+| Prediction threshold | 0.5 (sigmoid output) |
+
+### 8.2 Metrics (held-out test split, 1,159 reviews)
+
+| Metric | Value |
+|---|---|
+| Accuracy | 88.2% |
+| F1 | 88.6% |
+| Misclassified | 137 / 1,159 |
+| Best val F1 | 87.8% (epoch 12) |
+
+Comparison:
+
+| Model | Accuracy | F1 |
+|---|---:|---:|
+| TF-IDF + LogReg (baseline) | 82.7% | 81.9% |
+| BiLSTM + GloVe | 81.0% | 80.3% |
+| **DistilBERT** | **88.2%** | **88.6%** |
+
+### 8.3 Compact checkpoint behavior
+
+The checkpoint embeds only the head weights (and fine-tuned encoder layers for `partial_encoder`). The frozen encoder weights (~66 MB) are **not** stored. This keeps `distilbert.pt` at ~29 MB, but it means:
+
+- **First inference after a fresh install** downloads `distilbert-base-uncased` from HuggingFace Hub (~250 MB). Subsequent runs use the local HF cache.
+- **Air-gapped / offline deployment** requires pre-populating the HF cache and setting `local_files_only=True` in `model_config`.
+- **Checkpoint portability** depends on `distilbert-base-uncased` remaining available on HuggingFace Hub. If the base model is removed or renamed, the checkpoint cannot load.
+
+### 8.4 Known failure modes
+
+| Failure | Cause | Observed error |
+|---|---|---|
+| `FileNotFoundError` | `outputs/distilbert.pt` does not exist (model not yet trained) | Raised by `load_pretrained_bert_bundle()`; caught by `app_service.load_distilbert()` |
+| `OSError` | HuggingFace Hub unreachable or cache miss with `local_files_only=True` | Raised by `AutoTokenizer.from_pretrained()` or `DistilBertForSequenceClassification.from_pretrained()` |
+| `RuntimeError` (corrupt checkpoint) | Checkpoint has unexpected or missing keys outside the allowlist | Raised by `load_pretrained_bert_bundle()` allowlist validation |
+| `ImportError` | `transformers` package not installed | Raised at import time; `app_service.load_distilbert()` catches and returns `None` |
+| Low confidence on ambiguous reviews | Reviews near 3-star threshold may flip depending on phrasing | Expected — 3-star reviews were excluded from training data |
+| Domain shift | Checkpoint trained only on Books / DVD / Electronics / Kitchen | Performance may degrade on other product categories |
+
+### 8.5 Security / deployment caveats
+
+- `torch.load(..., weights_only=False)` is used to load `distilbert.pt`. This allows arbitrary Python deserialization. **Never load a checkpoint from an untrusted source.** Switching to `weights_only=True` would require migrating to `torch.save` with a safe serialization format.
+- The checkpoint is committed to git (~29 MB). For production use, host on a CDN or webserver and download at startup (see Issue #28). Git LFS or a pre-signed URL is preferred over binary blobs in the repo history.
+- HuggingFace model downloads are unauthenticated by default. Set `HF_TOKEN` to increase rate limits and verify model provenance.
 
 ---
 
 ## 8. Test Coverage
 
 ```
-pytest tests/ -q -m "not slow"   # 143 unit tests
+pytest tests/ -q -m "not slow"   # 165 unit tests
 pytest tests/                     # + 5 slow integration tests
 ```
 
@@ -292,10 +448,11 @@ The current codebase works but has accumulated coupling across the training/infe
 
 | Concern | Current state | Target state |
 |---|---|---|
-| **Artifact paths** | `OUTPUTS_DIR`, `CHECKPOINT_PATH`, `DEPLOY_CHECKPOINT_PATH` duplicated across `dataset.py`, `inference.py`, `train_bert.py` | Single `src/config.py` that owns all path constants |
+| **Artifact paths** | `OUTPUTS_DIR`, `CHECKPOINT_PATH`, `DEPLOY_CHECKPOINT_PATH` duplicated across `dataset.py`, `inference.py`, `train_bert.py` | ✅ Done — `src/config.py` owns all path constants (Issue #31) |
 | **DistilBERT checkpoint** | Committed to git (~29 MB) | Hosted on luisfaria webserver (Issue #28); optional download fallback |
 | **evaluate.py** | BiLSTM and DistilBERT evaluation mixed in one module | Separate `evaluate_bilstm()` and `evaluate_distilbert()` entry points with a common metrics helper |
-| **train_bert.py** | 700+ lines; tokenizer loading, dataset, training loop, and checkpoint serialisation all in one file | Split into `tokenizer.py`, `dataset_bert.py`, `train_bert.py` |
+| **train_bert.py** | 700+ lines; tokenizer loading, dataset, training loop, and checkpoint serialisation all in one file | ✅ Done — split into `dataset_bert.py`, `checkpoint_bert.py`, `train_bert.py` (Issue #36) |
 | **inference.py** | `load_checkpoint()` lives here for historical reasons but is only used by `evaluate.py` | Move to `evaluate.py` or a shared `checkpoint.py` |
+| **app.py** | Model loading, availability logic, and sample data mixed into UI file | ✅ Done — model loading in `src/app_service.py`, samples in `src/utils/samples.py` (Issue #37) |
 
 These are documentation targets only — no code changes in this issue.
