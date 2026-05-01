@@ -71,13 +71,22 @@ def _loader():
 # ---------------------------------------------------------------------------
 
 def test_inference_import_does_not_load_matplotlib():
-    import sys
-    # Remove cached modules to get a clean import check
-    mpl_before = {m for m in sys.modules if "matplotlib" in m}
-    import src.inference  # noqa: F401
-    mpl_after = {m for m in sys.modules if "matplotlib" in m}
-    assert mpl_after == mpl_before, (
-        f"Importing src.inference loaded matplotlib modules: {mpl_after - mpl_before}"
+    import subprocess, sys
+    from pathlib import Path
+    project_root = str(Path(__file__).parent.parent)
+    result = subprocess.run(
+        [
+            sys.executable, "-c",
+            "import sys; import src.inference; "
+            "bad = [m for m in sys.modules if m.startswith('matplotlib')]; "
+            "assert not bad, f'matplotlib loaded: {bad}'",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=project_root,
+    )
+    assert result.returncode == 0, (
+        f"src.inference pulled in matplotlib:\n{result.stderr}"
     )
 
 
