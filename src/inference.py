@@ -224,6 +224,22 @@ _PREDICTORS: dict[str, Predictor] = {
 }
 
 
+def register_predictor(name: str, predictor: Predictor) -> None:
+    """Register a new predictor under the given model name.
+
+    Allows adding future models (e.g. RoBERTa) without editing this module:
+
+        from src.inference import register_predictor
+        register_predictor("roberta", RoBERTaPredictor())
+    """
+    _PREDICTORS[name] = predictor
+
+
+def get_available_models() -> tuple[str, ...]:
+    """Return the names of all currently registered models."""
+    return tuple(_PREDICTORS.keys())
+
+
 # ---------------------------------------------------------------------------
 # Backward-compat flat functions (call concrete instances directly)
 # ---------------------------------------------------------------------------
@@ -269,7 +285,8 @@ def predict_sentiment(text: str, model_name: str = MODEL_BASELINE) -> dict:
     """
     if model_name not in _PREDICTORS:
         raise ValueError(
-            f"Unknown model '{model_name}'. Choose from {ALL_MODELS}."
+            f"Unknown model '{model_name}'. "
+            f"Available: {get_available_models()}."
         )
     return _PREDICTORS[model_name].predict(text)
 
