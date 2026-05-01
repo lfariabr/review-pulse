@@ -38,7 +38,7 @@ review-pulse/
 │   ├── electronics/
 │   └── kitchen_&_housewares/
 ├── embeddings/             ← GloVe vectors (not in git, ~800 MB)
-├── tests/                  ← 165 unit tests + 5 slow integration tests
+├── tests/                  ← 189 fast tests + 5 slow integration tests
 └── docs/                   ← project documentation
 ```
 
@@ -434,7 +434,7 @@ The checkpoint embeds only the head weights (and fine-tuned encoder layers for `
 ## 8. Test Coverage
 
 ```
-pytest tests/ -q -m "not slow"   # 165 unit tests
+pytest tests/ -q -m "not slow"   # 189 fast tests
 pytest tests/                     # + 5 slow integration tests
 ```
 
@@ -442,17 +442,18 @@ BERT-specific test files (`test_model_bert.py`, `test_train_bert.py`) use `pytes
 
 ---
 
-## 9. Target Boundaries (Refactor Series)
+## 9. Completed Boundaries (Refactor Series)
 
-The current codebase works but has accumulated coupling across the training/inference/evaluation boundary. Intended targets for v2.x:
+The #30-#39 refactor series closed the highest-risk coupling issues without changing model behavior:
 
-| Concern | Current state | Target state |
+| Concern | Original state | Current state |
 |---|---|---|
-| **Artifact paths** | `OUTPUTS_DIR`, `CHECKPOINT_PATH`, `DEPLOY_CHECKPOINT_PATH` duplicated across `dataset.py`, `inference.py`, `train_bert.py` | ✅ Done — `src/config.py` owns all path constants (Issue #31) |
-| **DistilBERT checkpoint** | Committed to git (~29 MB) | Hosted on luisfaria webserver (Issue #28); optional download fallback |
-| **evaluate.py** | BiLSTM and DistilBERT evaluation mixed in one module | Separate `evaluate_bilstm()` and `evaluate_distilbert()` entry points with a common metrics helper |
-| **train_bert.py** | 700+ lines; tokenizer loading, dataset, training loop, and checkpoint serialisation all in one file | ✅ Done — split into `dataset_bert.py`, `checkpoint_bert.py`, `train_bert.py` (Issue #36) |
-| **inference.py** | `load_checkpoint()` lives here for historical reasons but is only used by `evaluate.py` | Move to `evaluate.py` or a shared `checkpoint.py` |
-| **app.py** | Model loading, availability logic, and sample data mixed into UI file | ✅ Done — model loading in `src/app_service.py`, samples in `src/utils/samples.py` (Issue #37) |
+| **Artifact paths** | constants duplicated across modules | `src/config.py` owns artifact paths, model IDs, and prediction threshold |
+| **Inference dispatch** | `predict_sentiment()` used explicit `if/elif` routing | predictor protocol + model registry with `register_predictor()` |
+| **Evaluation side effects** | metric computation and file writing coupled | pure metric helper plus optional PNG/CSV writing |
+| **DistilBERT training** | tokenizer, dataset, checkpointing, and training in one large file | split across `dataset_bert.py`, `checkpoint_bert.py`, and `train_bert.py` |
+| **App loading policy** | Streamlit UI owned model loading and availability decisions | `src/app_service.py` owns cached loading and DistilBERT availability |
+| **Artifact documentation** | binary artifacts documented informally | architecture doc includes artifact policy and DistilBERT model-card notes |
+| **Architecture tests** | tests focused mostly on function outputs | config contract and boundary tests protect module ownership |
 
-These are documentation targets only — no code changes in this issue.
+Remaining architectural debt is now about package organization, not immediate behavior. The proposed modular package refactor is tracked in `docs/issueBreakdown-phase3.md`.

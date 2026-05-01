@@ -63,7 +63,7 @@ python -m src.evaluate
 - Optional manual acceptance:
   - Train DistilBERT on the real split.
   - Record validation/test F1.
-  - Compare against TF-IDF and BiLSTM in `docs/issueBreakdown.md`.
+  - Compare against TF-IDF and BiLSTM in `docs/issueBreakdown-phase1.md`.
 
 ## Assumptions
 

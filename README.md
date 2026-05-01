@@ -1,35 +1,68 @@
 # ReviewPulse
 
-Multi-domain Amazon product review sentiment classifier. Trained on 8,000 labelled reviews across Books, DVDs, Electronics, and Kitchen & Housewares.
+Multi-domain Amazon product review sentiment classifier built for ISY503 Intelligent Systems, Assessment 3.
 
-Built for ISY503 Intelligent Systems, Assessment 3.
+The project compares three NLP approaches behind one Streamlit app:
 
-[Main repo with +900 commits in ~1 year of work](https://github.com/lfariabr/masters-swe-ai)
+- **Baseline:** TF-IDF + Logistic Regression
+- **Neural:** BiLSTM + GloVe
+- **Transformer:** Hugging Face DistilBERT
 
-## Project structure
+Dataset: 8,000 labelled product reviews across Books, DVDs, Electronics, and Kitchen & Housewares.
 
-```
+[Main study repo](https://github.com/lfariabr/masters-swe-ai)
+
+## Current Results
+
+Held-out test split: 1,159 reviews, stratified 70/15/15 split, seed=42.
+
+| Model | Accuracy | F1 | Misclassified |
+|---|---:|---:|---:|
+| TF-IDF + Logistic Regression | 82.7% | 81.9% | 201 |
+| BiLSTM + GloVe | 81.0% | 80.3% | 220 |
+| DistilBERT | 88.2% | 88.6% | 137 |
+
+The baseline remains the simplest strong benchmark. DistilBERT is the strongest model in this build. BiLSTM demonstrates the neural sequence-model path required by the assessment.
+
+## Project Structure
+
+```text
 review-pulse/
-  app.py               # Streamlit inference UI
+  app.py                    # Streamlit UI: layout, input, result display
   requirements.txt
+  .streamlit/config.toml    # Streamlit watcher config
+
   src/
-    parser.py          # pseudo-XML parser → DataFrame
-    preprocess.py      # label audit, cleaning, outlier removal, splits
-    features.py        # EDA helpers
-    dataset.py         # vocab, GloVe loader, PyTorch Dataset/DataLoader
-    baseline.py        # TF-IDF + LogisticRegression pipeline
-    model.py           # BiLSTMSentiment nn.Module
-    model_bert.py      # Hugging Face DistilBERT classifier module
-    train.py           # training loop + checkpointing
-    train_bert.py      # Hugging Face DistilBERT training flow
-    inference.py       # predict_sentiment() shared by app and evaluate
-    evaluate.py        # metrics, confusion matrix, error analysis
-  tests/               # pytest test suite
-  notebooks/           # EDA.ipynb, optional distilbert.ipynb
-  data/                # local .review files (not committed)
-  outputs/             # generated artifacts (not committed)
-  embeddings/          # optional GloVe files (not committed)
-  docs/                # planning docs, diagrams, submission checklists
+    config.py               # paths, model names, prediction threshold
+    app_service.py          # cached app loaders + model availability helpers
+
+    parser.py               # pseudo-XML parser -> DataFrame
+    preprocess.py           # label audit, cleaning, outlier removal, splits
+    features.py             # EDA helpers
+
+    dataset.py              # vocab, GloVe loader, BiLSTM Dataset/DataLoaders
+    dataset_bert.py         # DistilBERT tokenizer + Dataset/DataLoaders
+
+    baseline.py             # TF-IDF + LogisticRegression train/evaluate/load
+    model.py                # BiLSTMSentiment nn.Module
+    model_bert.py           # DistilBERTSentiment HF wrapper
+
+    train.py                # BiLSTM training loop + checkpointing
+    train_bert.py           # DistilBERT training stage orchestration
+    checkpoint_bert.py      # DistilBERT checkpoint save/load helpers
+
+    inference.py            # Predictor protocol, registry, predict_sentiment()
+    evaluate.py             # metrics, confusion matrix, error analysis
+
+    utils/
+      samples.py            # Streamlit demo review samples
+
+  tests/                    # pytest suite: 189 fast + 5 slow integration tests
+  notebooks/                # EDA notebook
+  data/                     # local raw .review files
+  outputs/                  # committed model artifacts + generated reports
+  embeddings/               # optional GloVe files, gitignored
+  docs/                     # architecture, issue breakdowns, release notes
 ```
 
 ## Setup
@@ -40,11 +73,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **Windows:** use `.venv\Scripts\activate` instead.
+Windows:
 
-Place `.review` data files under `data/` in the following structure:
-
+```powershell
+.venv\Scripts\activate
+pip install -r requirements.txt
 ```
+
+Place `.review` data files under `data/`:
+
+```text
 data/
   books/positive.review
   books/negative.review
@@ -56,22 +94,35 @@ data/
   kitchen_&_housewares/negative.review
 ```
 
-### GloVe embeddings (optional)
+## Model Artifacts
 
-GloVe pre-trained vectors can improve accuracy but are not required to run the project.
+The app expects trained artifacts in `outputs/`:
 
-| | Without GloVe | With GloVe |
-|---|---|---|
-| Embeddings | Learned from scratch | Initialised from GloVe 100d |
-| Setup | Nothing extra needed | Download ~800 MB file |
-| Expected accuracy | ~88–91% | ~92–95% |
+| Artifact | Purpose | Committed |
+|---|---|:---:|
+| `outputs/baseline.joblib` | TF-IDF + Logistic Regression pipeline | Yes |
+| `outputs/vocab.json` | BiLSTM vocabulary | Yes |
+| `outputs/bilstm.pt` | BiLSTM checkpoint | Yes |
+| `outputs/distilbert.pt` | Compact DistilBERT checkpoint | Yes |
+
+Generated evaluation reports such as PNG confusion matrices and CSV error analysis files are gitignored.
+
+DistilBERT note: `outputs/distilbert.pt` is a compact checkpoint. It stores the classification head and fine-tuned encoder layers, but frozen base encoder weights are loaded from `distilbert-base-uncased` through Hugging Face. A fresh machine may need network access or a pre-populated Hugging Face cache.
+
+See `docs/architecture.md` for the full artifact policy and DistilBERT model-card notes.
+
+## GloVe Embeddings
+
+GloVe pre-trained vectors are optional for BiLSTM training.
 
 To enable GloVe:
-1. Download `glove.6B.zip` from [Stanford NLP](https://nlp.stanford.edu/projects/glove/)
-2. Extract and place `glove.6B.100d.txt` in the `embeddings/` directory
-3. Re-run training — `load_glove()` detects the file automatically
 
-If `embeddings/glove.6B.100d.txt` is absent, training proceeds with randomly initialised embeddings and a warning is printed. The `embeddings/` directory is gitignored.
+1. Download `glove.6B.zip` from Stanford NLP.
+2. Extract `glove.6B.100d.txt`.
+3. Place it in `embeddings/glove.6B.100d.txt`.
+4. Re-run BiLSTM training.
+
+If the file is absent, BiLSTM training proceeds with randomly initialized embeddings and prints a warning. The `embeddings/` directory is gitignored.
 
 ## Train
 
@@ -87,13 +138,13 @@ Train the BiLSTM:
 python -m src.train
 ```
 
-Optional DistilBERT training:
+Train DistilBERT:
 
 ```bash
 python -m src.train_bert
 ```
 
-Note: `src.train_bert` uses Hugging Face `distilbert-base-uncased` and writes the deployment artifact to `outputs/distilbert.pt`. The first run needs access to the model and tokenizer through the Hugging Face cache or network. If `head_epochs >= epochs`, training runs only on the frozen encoder classifier head.
+`src.train_bert` uses Hugging Face `distilbert-base-uncased`, freezes the encoder for head training, then fine-tunes the last encoder layers. It writes the deployment artifact to `outputs/distilbert.pt`.
 
 ## Evaluate
 
@@ -101,18 +152,85 @@ Note: `src.train_bert` uses Hugging Face `distilbert-base-uncased` and writes th
 python -m src.evaluate
 ```
 
-Outputs saved to `outputs/`: confusion matrix, error examples CSV, and per-model metrics.
+Evaluation loads the trained artifacts, runs the held-out test split, prints metrics, and writes generated reports to `outputs/`.
 
-## Run the app
+Evaluation helpers can also run without file side effects:
+
+```python
+from src.evaluate import run_evaluation
+
+metrics = run_evaluation(save_outputs=False)
+```
+
+## Run The App
 
 ```bash
 streamlit run app.py
 ```
 
-Enter a review in the text area, select a model (BiLSTM or Baseline), and click **Classify**.
+The app lets the user:
 
-## Run tests
+- enter or generate a sample review;
+- choose Baseline, BiLSTM, or DistilBERT;
+- classify sentiment;
+- inspect the confidence and raw prediction payload.
+
+Model loading and availability checks live in `src/app_service.py`; `app.py` stays focused on UI.
+
+## Inference API
+
+```python
+from src.inference import predict_sentiment
+
+result = predict_sentiment(
+    "This blender is great.",
+    model_name="distilbert",
+)
+```
+
+Response shape:
+
+```python
+{
+    "label": "Positive review",
+    "confidence": 0.923,
+    "model": "distilbert",
+}
+```
+
+Available model names:
+
+- `"baseline"`
+- `"bilstm"`
+- `"distilbert"`
+
+Future models can be registered through `register_predictor()` in `src.inference`.
+
+## Run Tests
+
+Fast suite:
+
+```bash
+pytest tests/ -q -m "not slow"
+```
+
+Full suite:
 
 ```bash
 pytest tests/
 ```
+
+Current status:
+
+- Fast suite: 189 passed, 5 deselected
+- Full suite: 194 passed
+
+## Documentation Map
+
+- `docs/architecture.md` - current architecture, data flow, artifact policy, DistilBERT model card
+- `docs/issueBreakdown-phase1.md` - original assessment delivery breakdown
+- `docs/issueBreakdown-phase2.md` - completed #30-#39 refactor track
+- `docs/issueBreakdown-phase3.md` - proposed modular package refactor plan
+- `docs/assessment-files/` - presentation outline, individual report template, demo test cases
+- `docs/releaseNotes/v1.0.0.md` - baseline + BiLSTM release
+- `docs/releaseNotes/v2.0.0.md` - DistilBERT release
