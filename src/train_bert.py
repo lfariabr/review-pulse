@@ -1,174 +1,88 @@
-"""
-Train Hugging Face DistilBERT for Amazon review sentiment analysis.
+"""Train Hugging Face DistilBERT for Amazon review sentiment analysis.
 
-By default, training freezes the DistilBERT encoder and trains only the classifier head, 
-then un-freezes the last 2 encoder layers for partial fine-tuning,
-the trained model optimized for deployment is saved to outputs/distilbert.pt.
+By default, training freezes the DistilBERT encoder and trains only the
+classifier head, then un-freezes the last 2 encoder layers for partial
+fine-tuning. The trained model is saved to outputs/distilbert.pt.
 
 Usage:
     python -m src.train_bert
+
+Module layout
+─────────────
+  src/dataset_bert.py    — device resolution, tokenizer, BertReviewDataset,
+                           DataLoader factories
+  src/checkpoint_bert.py — checkpoint serialization and bundle loading
+  src/train_bert.py      — training loop, stage orchestration, CLI
+                           (this file; re-exports from the above two)
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Optional
-import tempfile
-import time
 import traceback
+import time
+from pathlib import Path
+from typing import Optional
 
-import pandas as pd
 import torch
 import torch.nn as nn
 from sklearn.metrics import accuracy_score, f1_score
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
-from src.config import DISTILBERT_PATH, PRED_THRESHOLD
-from src.dataset import MAX_LEN, OUTPUTS_DIR
+from src.config import PRED_THRESHOLD
+from src.dataset_bert import (          # noqa: F401 — re-exported for callers
+    BATCH_SIZE,
+    LOCAL_FILES_ONLY,
+    MODEL_NAME,
+    SEED,
+    BertReviewDataset,
+    encode_texts,
+    load_tokenizer,
+    make_bert_dataloaders,
+    make_bert_test_loader,
+    resolve_device,
+)
+from src.checkpoint_bert import (       # noqa: F401 — re-exported for callers
+    DEPLOY_CHECKPOINT_PATH,
+    PRETRAINED_MODEL_NAME,
+    _load_tokenizer_from_checkpoint,
+    _save_checkpoint,
+    _serialize_tokenizer,
+    _trainable_encoder_layer_indexes,
+    load_pretrained_bert_bundle,
+)
 from src.model_bert import (
     BERT_DROPOUT,
     DISTILBERT_MODEL_NAME,
     PRETRAINED_DISTILBERT_MODEL_NAME,
     DistilBERTSentiment,
 )
+from src.dataset import MAX_LEN, OUTPUTS_DIR
 
 try:
     from transformers import AutoTokenizer
-except ImportError as exc:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover
     AutoTokenizer = None
-    _TRANSFORMERS_IMPORT_ERROR = exc
-else:
-    _TRANSFORMERS_IMPORT_ERROR = None
-
 
 LOGGER = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Training hyperparameters
+# ---------------------------------------------------------------------------
 
-EPOCHS = 5
-# Set to 5 for better performance, best f1 observed at 4 epochs in initial tests
-# beyond 10 epochs, the model starts to overfit on the small dataset, with val F1 plateauing or declining
-LR = 2e-5
-HEAD_EPOCHS = 2
-HEAD_LR = 5e-4
-CLASSIFIER_LR = 5e-5
+EPOCHS               = 5
+LR                   = 2e-5
+HEAD_EPOCHS          = 2
+HEAD_LR              = 5e-4
+CLASSIFIER_LR        = 5e-5
 FINE_TUNE_LAST_N_LAYERS = 2
-CLIP = 1.0
-WEIGHT_DECAY = 0.01
-BATCH_SIZE = 16
-DROPOUT = BERT_DROPOUT
-MODEL_NAME = DISTILBERT_MODEL_NAME
-SEED = 42
-FREEZE_ENCODER = True
-LOCAL_FILES_ONLY = False
-
-DEPLOY_CHECKPOINT_PATH = DISTILBERT_PATH
-PRETRAINED_MODEL_NAME = PRETRAINED_DISTILBERT_MODEL_NAME
+CLIP                 = 1.0
+WEIGHT_DECAY         = 0.01
+DROPOUT              = BERT_DROPOUT
+FREEZE_ENCODER       = True
 
 
-def resolve_device(device: Optional[torch.device] = None) -> torch.device:
-    """Resolve the best available device for training or evaluation."""
-    if device is not None:
-        return device
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    return torch.device("cpu")
-
-
-def load_tokenizer(
-    model_name: str = MODEL_NAME,
-    local_files_only: bool = LOCAL_FILES_ONLY,
-):
-    """Load the Hugging Face tokenizer used by DistilBERT."""
-    if AutoTokenizer is None:
-        raise ImportError(
-            "transformers is required for DistilBERT tokenization."
-        ) from _TRANSFORMERS_IMPORT_ERROR
-    return AutoTokenizer.from_pretrained(
-        model_name,
-        local_files_only=local_files_only,
-    )
-
-
-class BertReviewDataset(Dataset):
-    """Dataset containing tokenized reviews and binary labels."""
-
-    def __init__(self, encodings: dict[str, torch.Tensor], labels: list[int]) -> None:
-        self.encodings = encodings
-        self.labels = torch.tensor(labels, dtype=torch.float32)
-
-    def __len__(self) -> int:
-        return len(self.labels)
-
-    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
-        item = {key: value[idx] for key, value in self.encodings.items()}
-        item["labels"] = self.labels[idx]
-        return item
-
-
-def encode_texts(
-    texts: list[str],
-    tokenizer: Any,
-    max_len: int = MAX_LEN,
-) -> dict[str, torch.Tensor]:
-    """Tokenize and pad review texts for DistilBERT."""
-    return tokenizer(
-        texts,
-        padding="max_length",
-        truncation=True,
-        max_length=max_len,
-        return_tensors="pt",
-    )
-
-
-def make_bert_dataloaders(
-    train_df: pd.DataFrame,
-    val_df: pd.DataFrame,
-    test_df: pd.DataFrame,
-    tokenizer: Any,
-    batch_size: int = BATCH_SIZE,
-    max_len: int = MAX_LEN,
-    seed: int = SEED,
-) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """Wrap train / val / test DataFrames in DistilBERT-ready DataLoaders."""
-
-    def _make(df: pd.DataFrame, shuffle: bool) -> DataLoader:
-        encodings = encode_texts(df["text"].tolist(), tokenizer, max_len=max_len)
-        generator = torch.Generator().manual_seed(seed) if shuffle else None
-        return DataLoader(
-            BertReviewDataset(encodings, df["label"].tolist()),
-            batch_size=batch_size,
-            shuffle=shuffle,
-            generator=generator,
-        )
-
-    train_loader = _make(train_df, shuffle=True)
-    val_loader = _make(val_df, shuffle=False)
-    test_loader = _make(test_df, shuffle=False)
-
-    print(
-        f"make_bert_dataloaders: train={len(train_loader.dataset)}, "
-        f"val={len(val_loader.dataset)}, test={len(test_loader.dataset)} "
-        f"(batch_size={batch_size}, max_len={max_len})",
-        flush=True,
-    )
-    return train_loader, val_loader, test_loader
-
-
-def make_bert_test_loader(
-    test_df: pd.DataFrame,
-    tokenizer: Any,
-    batch_size: int = BATCH_SIZE,
-    max_len: int = MAX_LEN,
-) -> DataLoader:
-    """Create the DistilBERT test DataLoader with one tokenization pass."""
-    encodings = encode_texts(test_df["text"].tolist(), tokenizer, max_len=max_len)
-    return DataLoader(
-        BertReviewDataset(encodings, test_df["label"].tolist()),
-        batch_size=batch_size,
-        shuffle=False,
-    )
-
+# ---------------------------------------------------------------------------
+# Per-epoch training helpers
+# ---------------------------------------------------------------------------
 
 def train_one_epoch_bert(
     model: nn.Module,
@@ -184,13 +98,13 @@ def train_one_epoch_bert(
     total_loss = 0.0
 
     for batch in loader:
-        input_ids = batch["input_ids"].to(device)
+        input_ids      = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
-        labels = batch["labels"].float().to(device)
+        labels         = batch["labels"].float().to(device)
 
         optimizer.zero_grad()
         logits = model(input_ids=input_ids, attention_mask=attention_mask)
-        loss = criterion(logits, labels)
+        loss   = criterion(logits, labels)
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
@@ -210,17 +124,17 @@ def evaluate_epoch_bert(
     device = resolve_device(device)
     model.eval()
     total_loss = 0.0
-    all_preds = []
+    all_preds  = []
     all_labels = []
 
     with torch.no_grad():
         for batch in loader:
-            input_ids = batch["input_ids"].to(device)
+            input_ids      = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            labels = batch["labels"].float().to(device)
+            labels         = batch["labels"].float().to(device)
 
             logits = model(input_ids=input_ids, attention_mask=attention_mask)
-            loss = criterion(logits, labels)
+            loss   = criterion(logits, labels)
             total_loss += loss.item()
 
             preds = (torch.sigmoid(logits) >= PRED_THRESHOLD).long().cpu()
@@ -228,140 +142,18 @@ def evaluate_epoch_bert(
             all_labels.extend(batch["labels"].long().tolist())
 
     acc = accuracy_score(all_labels, all_preds)
-    f1 = f1_score(all_labels, all_preds, zero_division=0)
+    f1  = f1_score(all_labels, all_preds, zero_division=0)
 
     return {
-        "loss": total_loss / len(loader),
+        "loss":     total_loss / len(loader),
         "accuracy": round(acc, 4),
-        "f1": round(f1, 4),
+        "f1":       round(f1, 4),
     }
 
 
-def _trainable_encoder_layer_indexes(model: DistilBERTSentiment) -> list[int]:
-    """Return DistilBERT transformer layer indexes with trainable parameters."""
-    return [
-        idx
-        for idx, layer in enumerate(model.encoder.transformer.layer)
-        if any(param.requires_grad for param in layer.parameters())
-    ]
-
-
-def _serialize_tokenizer(tokenizer: Any) -> dict[str, bytes] | None:
-    """Serialize Hugging Face tokenizer files into a checkpoint-safe payload."""
-    if tokenizer is None or not hasattr(tokenizer, "save_pretrained"):
-        return None
-
-    with tempfile.TemporaryDirectory() as tmp:
-        tokenizer.save_pretrained(tmp)
-        tmp_path = Path(tmp)
-        return {
-            path.name: path.read_bytes()
-            for path in tmp_path.iterdir()
-            if path.is_file()
-        }
-
-
-def _load_tokenizer_from_checkpoint(
-    checkpoint: dict[str, Any],
-    *,
-    model_name: str,
-    local_files_only: bool,
-):
-    """Load an embedded tokenizer payload, falling back to Hugging Face."""
-    tokenizer_files = checkpoint.get("tokenizer_files")
-    if tokenizer_files:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            for name, data in tokenizer_files.items():
-                (tmp_path / name).write_bytes(data)
-            return load_tokenizer(model_name=str(tmp_path), local_files_only=True)
-
-    return load_tokenizer(
-        model_name=checkpoint.get("tokenizer_name", model_name),
-        local_files_only=local_files_only,
-    )
-
-
-def _save_checkpoint(
-    *,
-    checkpoint_path: Path,
-    model: DistilBERTSentiment,
-    tokenizer_files: dict[str, bytes] | None,
-    model_config: dict[str, Any],
-    tokenizer_name: str,
-    history: list[dict[str, Any]],
-    best_val_f1: float,
-    best_epoch: int,
-    extra: Optional[dict[str, Any]] = None,
-) -> None:
-    """Save fp16_state_dict for deployment inference, not resumable training.
-
-    _save_checkpoint casts weights to FP16, omits optimizer state, and can cause
-    precision, gradient, or overflow issues if used with resume_from-style
-    training.
-    """
-    checkpoint_path = Path(checkpoint_path)
-    state_dict = model.state_dict()
-    state_dict = {
-        key: value
-        for key, value in state_dict.items()
-        if not key.startswith("encoder.")
-    }
-
-    trainable_encoder_layer_indexes = _trainable_encoder_layer_indexes(model)
-    encoder_is_frozen = not any(
-        param.requires_grad for param in model.encoder.parameters()
-    )
-    all_encoder_trainable = all(
-        param.requires_grad for param in model.encoder.parameters()
-    )
-    if encoder_is_frozen:
-        save_strategy = "head_only"
-    elif all_encoder_trainable:
-        save_strategy = "full"
-    else:
-        save_strategy = "partial_encoder"
-
-    if save_strategy == "head_only":
-        state_dict = {
-            key: value
-            for key, value in state_dict.items()
-            if not key.startswith("model.distilbert.")
-        }
-    elif save_strategy == "partial_encoder":
-        trainable_prefixes = tuple(
-            f"model.distilbert.transformer.layer.{idx}."
-            for idx in trainable_encoder_layer_indexes
-        )
-        state_dict = {
-            key: value
-            for key, value in state_dict.items()
-            if not key.startswith("model.distilbert.")
-            or key.startswith(trainable_prefixes)
-        }
-
-    fp16_state_dict = {
-        key: value.detach().cpu().to(torch.float16)
-        for key, value in state_dict.items()
-    }
-
-    payload = {
-        "model_config": model_config,
-        "tokenizer_name": tokenizer_name,
-        "tokenizer_files": tokenizer_files,
-        "best_val_f1": best_val_f1,
-        "best_epoch": best_epoch,
-        "history": history,
-        "model_state": fp16_state_dict,
-        "weights_format": "torch_state_dict",
-        "weights_dtype": "float16",
-        "save_strategy": save_strategy,
-        "trainable_encoder_layers": trainable_encoder_layer_indexes,
-    }
-    if extra:
-        payload.update(extra)
-    torch.save(payload, checkpoint_path)
-
+# ---------------------------------------------------------------------------
+# Optimizer helpers
+# ---------------------------------------------------------------------------
 
 def _trainable_parameters(model: nn.Module) -> list[nn.Parameter]:
     return [param for param in model.parameters() if param.requires_grad]
@@ -392,17 +184,9 @@ def _make_finetune_optimizer(
     encoder_params, head_params = _split_encoder_head_parameters(model)
     param_groups = []
     if encoder_params:
-        param_groups.append({
-            "params": encoder_params,
-            "lr": encoder_lr,
-            "name": "encoder",
-        })
+        param_groups.append({"params": encoder_params, "lr": encoder_lr,    "name": "encoder"})
     if head_params:
-        param_groups.append({
-            "params": head_params,
-            "lr": classifier_lr,
-            "name": "classifier",
-        })
+        param_groups.append({"params": head_params,    "lr": classifier_lr, "name": "classifier"})
     if not param_groups:
         raise RuntimeError("No trainable parameters found for DistilBERT fine-tuning.")
     return torch.optim.AdamW(param_groups, weight_decay=weight_decay)
@@ -414,6 +198,10 @@ def _optimizer_lrs(optimizer: torch.optim.Optimizer) -> dict[str, float]:
         for idx, group in enumerate(optimizer.param_groups)
     }
 
+
+# ---------------------------------------------------------------------------
+# Main training orchestration
+# ---------------------------------------------------------------------------
 
 def train_bert(
     train_df,
@@ -439,11 +227,10 @@ def train_bert(
 ) -> dict:
     """Train Hugging Face DistilBERT and save the best checkpoint by val F1.
 
-    By default, stage 1 freezes the DistilBERT encoder and trains only the
-    classifier head. Stage 2 fine-tunes the final
-    ``fine_tune_last_n_layers`` encoder layers with separate encoder/head
-    learning rates. Pass ``fine_tune_last_n_layers=None`` to unfreeze the full
-    encoder.
+    Stage 1 freezes the DistilBERT encoder and trains only the classifier
+    head. Stage 2 fine-tunes the final ``fine_tune_last_n_layers`` encoder
+    layers with separate encoder/head learning rates. Pass
+    ``fine_tune_last_n_layers=None`` to unfreeze the full encoder.
     """
     if epochs < 1:
         raise ValueError("epochs must be at least 1")
@@ -452,9 +239,8 @@ def train_bert(
     if fine_tune_last_n_layers is not None and fine_tune_last_n_layers < 1:
         raise ValueError("fine_tune_last_n_layers must be None or at least 1")
 
-    encoder_lr = lr if encoder_lr is None else encoder_lr
-
-    device = resolve_device(device)
+    encoder_lr     = lr if encoder_lr is None else encoder_lr
+    device         = resolve_device(device)
     checkpoint_path = Path(checkpoint_path or DEPLOY_CHECKPOINT_PATH)
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -462,12 +248,10 @@ def train_bert(
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-    tokenizer = load_tokenizer(model_name=model_name, local_files_only=local_files_only)
+    tokenizer      = load_tokenizer(model_name=model_name, local_files_only=local_files_only)
     tokenizer_files = _serialize_tokenizer(tokenizer)
     train_loader, val_loader, _ = make_bert_dataloaders(
-        train_df,
-        val_df,
-        val_df,
+        train_df, val_df, val_df,
         tokenizer=tokenizer,
         batch_size=batch_size,
         max_len=max_len,
@@ -483,12 +267,13 @@ def train_bert(
 
     criterion = nn.BCEWithLogitsLoss()
 
-    best_val_f1 = -1.0
-    best_epoch = 0
-    history = []
-    total_count = sum(param.numel() for param in model.parameters())
-    planned_head_epochs = min(head_epochs, epochs) if freeze_encoder else 0
+    best_val_f1  = -1.0
+    best_epoch   = 0
+    history      = []
+    total_count  = sum(param.numel() for param in model.parameters())
+    planned_head_epochs     = min(head_epochs, epochs) if freeze_encoder else 0
     planned_finetune_epochs = epochs - planned_head_epochs
+
     print(
         f"Training Hugging Face DistilBERT on {device} | epochs={epochs} | "
         f"head_epochs={planned_head_epochs} | fine_tune_epochs={planned_finetune_epochs} | "
@@ -497,13 +282,7 @@ def train_bert(
     )
     print("-" * 60, flush=True)
 
-    def _run_stage(
-        *,
-        stage_name: str,
-        stage_epochs: int,
-        optimizer: torch.optim.Optimizer,
-        start_epoch: int,
-    ) -> int:
+    def _run_stage(*, stage_name, stage_epochs, optimizer, start_epoch):
         nonlocal best_val_f1, best_epoch
 
         if stage_epochs <= 0:
@@ -521,22 +300,15 @@ def train_bert(
         current_epoch = start_epoch
         for _ in range(stage_epochs):
             current_epoch += 1
-            train_metrics = train_one_epoch_bert(
-                model,
-                train_loader,
-                optimizer,
-                criterion,
-                clip,
-                device,
-            )
-            val_metrics = evaluate_epoch_bert(model, val_loader, criterion, device)
+            train_metrics = train_one_epoch_bert(model, train_loader, optimizer, criterion, clip, device)
+            val_metrics   = evaluate_epoch_bert(model, val_loader, criterion, device)
 
             history.append({
-                "epoch": current_epoch,
-                "stage": stage_name,
+                "epoch":      current_epoch,
+                "stage":      stage_name,
                 "train_loss": train_metrics["loss"],
-                **{f"val_{key}": value for key, value in val_metrics.items()},
-                "lrs": _optimizer_lrs(optimizer),
+                **{f"val_{k}": v for k, v in val_metrics.items()},
+                "lrs":        _optimizer_lrs(optimizer),
             })
 
             print(
@@ -549,29 +321,29 @@ def train_bert(
             )
 
             if val_metrics["f1"] > best_val_f1:
-                best_val_f1 = val_metrics["f1"]
-                best_epoch = current_epoch
+                best_val_f1  = val_metrics["f1"]
+                best_epoch   = current_epoch
                 _save_checkpoint(
                     checkpoint_path=checkpoint_path,
                     model=model,
                     tokenizer_files=tokenizer_files,
                     model_config={
-                        "model_type": "pretrained",
-                        "model_name": model_name,
-                        "dropout": dropout,
-                        "freeze_encoder": not any(
+                        "model_type":              "pretrained",
+                        "model_name":              model_name,
+                        "dropout":                 dropout,
+                        "freeze_encoder":          not any(
                             param.requires_grad for param in model.encoder.parameters()
                         ),
-                        "local_files_only": local_files_only,
-                        "max_len": max_len,
-                        "batch_size": batch_size,
-                        "num_labels": 1,
-                        "head_epochs": planned_head_epochs,
-                        "fine_tune_epochs": planned_finetune_epochs,
+                        "local_files_only":        local_files_only,
+                        "max_len":                 max_len,
+                        "batch_size":              batch_size,
+                        "num_labels":              1,
+                        "head_epochs":             planned_head_epochs,
+                        "fine_tune_epochs":        planned_finetune_epochs,
                         "fine_tune_last_n_layers": fine_tune_last_n_layers,
-                        "head_lr": head_lr,
-                        "encoder_lr": encoder_lr,
-                        "classifier_lr": classifier_lr,
+                        "head_lr":                 head_lr,
+                        "encoder_lr":              encoder_lr,
+                        "classifier_lr":           classifier_lr,
                     },
                     tokenizer_name=model_name,
                     history=history,
@@ -583,15 +355,12 @@ def train_bert(
         return current_epoch
 
     current_epoch = 0
+
     if planned_head_epochs > 0:
         head_params = _trainable_parameters(model)
         if not head_params:
             raise RuntimeError("No trainable classifier parameters found for head training.")
-        head_optimizer = torch.optim.AdamW(
-            head_params,
-            lr=head_lr,
-            weight_decay=weight_decay,
-        )
+        head_optimizer = torch.optim.AdamW(head_params, lr=head_lr, weight_decay=weight_decay)
         head_optimizer.param_groups[0]["name"] = "classifier"
         current_epoch = _run_stage(
             stage_name="head",
@@ -605,9 +374,7 @@ def train_bert(
             model.unfreeze_distilbert_encoder()
             fine_tune_stage_name = "fine_tune"
         else:
-            trainable_layers = model.unfreeze_last_encoder_layers(
-                fine_tune_last_n_layers
-            )
+            trainable_layers = model.unfreeze_last_encoder_layers(fine_tune_last_n_layers)
             fine_tune_stage_name = f"fine_tune_last_{len(trainable_layers)}"
         finetune_optimizer = _make_finetune_optimizer(
             model,
@@ -627,53 +394,9 @@ def train_bert(
     return {"best_val_f1": best_val_f1, "best_epoch": best_epoch, "history": history}
 
 
-def load_pretrained_bert_bundle(
-    checkpoint_path: Optional[Path] = None,
-    device: Optional[torch.device] = None,
-):
-    """Load a saved Hugging Face DistilBERT checkpoint and tokenizer."""
-    device = resolve_device(device)
-    checkpoint_path = Path(checkpoint_path or DEPLOY_CHECKPOINT_PATH)
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"DistilBERT checkpoint not found at {checkpoint_path}. "
-            "Run `train_bert(...)` first."
-        )
-
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    cfg = ckpt["model_config"]
-    local_files_only = cfg.get("local_files_only", LOCAL_FILES_ONLY)
-    model_name = cfg.get("model_name", PRETRAINED_MODEL_NAME)
-
-    model = DistilBERTSentiment(
-        model_name=model_name,
-        dropout=cfg.get("dropout", DROPOUT),
-        freeze_encoder=cfg.get("freeze_encoder", FREEZE_ENCODER),
-        local_files_only=local_files_only,
-    ).to(device)
-
-    # strict=False is intentional for torch_state_dict ckpt loads: ckpt may omit encoder weights for head_only/partial_encoder strategies, and the HF model supplies them.
-    strict = ckpt.get("weights_format") != "torch_state_dict"
-    missing_keys, unexpected_keys = model.load_state_dict(
-        ckpt["model_state"],
-        strict=strict,
-    )
-    if missing_keys or unexpected_keys:
-        LOGGER.debug(
-            "load_pretrained_bert_bundle model.load_state_dict diagnostics for "
-            "ckpt['model_state']: missing_keys=%s unexpected_keys=%s",
-            missing_keys,
-            unexpected_keys,
-        )
-    model.eval()
-
-    tokenizer = _load_tokenizer_from_checkpoint(
-        ckpt,
-        model_name=model_name,
-        local_files_only=local_files_only,
-    )
-    return model, tokenizer, ckpt, device
-
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     start_time = time.perf_counter()
@@ -687,11 +410,6 @@ if __name__ == "__main__":
 
     print(f"Data loaded and preprocessed in {load_time - start_time:.2f} seconds", flush=True)
     try:
-        # this paramaters are set for best balance of performance, artifact size, and training time on CPU/GPU
-        # expected accuracy is ~0.88 and F1 ~0.87 with these settings 
-        # but feel free to experiment with them
-        # for quick tests, set epochs=2, head_epochs=2, fine_tune_last_n_layers=1 to reduce training time
-        # expected accuracy with 2 epochs is ~0.84 and F1 ~0.83
         train_bert(
             train_df,
             val_df,
@@ -699,7 +417,7 @@ if __name__ == "__main__":
             head_epochs=10,
             fine_tune_last_n_layers=2,
             checkpoint_path=DEPLOY_CHECKPOINT_PATH,
-            head_lr=1e-4
+            head_lr=1e-4,
         )
     except ImportError as exc:
         print(f"Skipping DistilBERT training: missing dependency — {exc}")
