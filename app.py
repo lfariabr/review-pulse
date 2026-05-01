@@ -7,7 +7,13 @@ Usage:
 from PIL import Image
 import streamlit as st
 
-from src.config import MODEL_BASELINE, MODEL_BILSTM, MODEL_DISTILBERT
+from src.app_service import (
+    DISTILBERT_UNAVAILABLE_MSG,
+    MODEL_OPTIONS,
+    is_distilbert_available,
+    warm_up_model,
+)
+from src.config import MODEL_DISTILBERT
 
 # ---------------------------------------------------------------------------
 # Page config — must be the first Streamlit call
@@ -30,31 +36,6 @@ st.logo("logo-icon.png", link=None)   # icon in the top-left chrome
 st.sidebar.image("logo.jpeg", use_container_width=True)
 
 # ---------------------------------------------------------------------------
-# Model loading — cached for the lifetime of the Streamlit session
-# ---------------------------------------------------------------------------
-
-@st.cache_resource(show_spinner="Loading model…")
-def _load_baseline():
-    from src.inference import load_baseline_model
-    return load_baseline_model()
-
-
-@st.cache_resource(show_spinner="Loading model…")
-def _load_bilstm():
-    from src.inference import load_bilstm_model
-    return load_bilstm_model()
-
-
-@st.cache_resource(show_spinner="Loading model…")
-def _load_distilbert():
-    try:
-        from src.inference import load_distilbert_model
-        return load_distilbert_model()
-    except (ImportError, FileNotFoundError, RuntimeError):
-        return None
-
-
-# ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
 
@@ -67,18 +48,6 @@ st.divider()
 # Model selector
 # ---------------------------------------------------------------------------
 
-MODEL_OPTIONS = {
-    MODEL_BASELINE:   "TF-IDF + Logistic Regression  (recommended — best test F1)",
-    MODEL_BILSTM:     "BiLSTM + GloVe  (neural model)",
-    MODEL_DISTILBERT: "DistilBERT_base_uncased  (Hugging Face model)",
-}
-
-MODEL_LOADERS = {
-    MODEL_BASELINE:   _load_baseline,
-    MODEL_BILSTM:     _load_bilstm,
-    MODEL_DISTILBERT: _load_distilbert,
-}
-
 model_name = st.radio(
     "Model",
     options=list(MODEL_OPTIONS.keys()),
@@ -90,15 +59,11 @@ model_name = st.radio(
 # Warm up the selected model; check DistilBERT loaded successfully.
 _distilbert_available = True
 if model_name == MODEL_DISTILBERT:
-    if _load_distilbert() is None:
+    if not is_distilbert_available():
         _distilbert_available = False
-        st.warning(
-            "DistilBERT is currently unavailable — the checkpoint or `transformers` "
-            "dependency could not be loaded. Select **Baseline** or **BiLSTM** to continue.",
-            icon="⚠️",
-        )
+        st.warning(DISTILBERT_UNAVAILABLE_MSG, icon="⚠️")
 else:
-    MODEL_LOADERS[model_name]()
+    warm_up_model(model_name)
 
 # ---------------------------------------------------------------------------
 # Sample reviews
