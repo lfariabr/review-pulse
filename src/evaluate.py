@@ -24,20 +24,21 @@ from sklearn.metrics import (
     f1_score,
 )
 
-from src.dataset import (
+from src.config import (
+    BASELINE_PATH,
+    BILSTM_CHECKPOINT_PATH,
     OUTPUTS_DIR,
-    load_vocab,
-    make_dataloaders,
+    PRED_THRESHOLD,
+    VOCAB_PATH,
 )
+from src.dataset import load_vocab, make_dataloaders
 from src.inference import load_checkpoint   # avoids pulling matplotlib into app startup
 from src.model import BiLSTMSentiment
 from src.train import evaluate_epoch
 
-CHECKPOINT_PATH    = OUTPUTS_DIR / "bilstm.pt"
-VOCAB_PATH         = OUTPUTS_DIR / "vocab.json"
+CHECKPOINT_PATH    = BILSTM_CHECKPOINT_PATH
 CONFUSION_PNG      = OUTPUTS_DIR / "confusion_matrix.png"
 ERROR_CSV          = OUTPUTS_DIR / "error_analysis.csv"
-BASELINE_PATH      = OUTPUTS_DIR / "baseline.joblib"
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ def collect_predictions(
         for tokens, labels in loader:
             tokens = tokens.to(device)
             logits = model(tokens)
-            preds  = (torch.sigmoid(logits) >= 0.5).long().cpu()
+            preds  = (torch.sigmoid(logits) >= PRED_THRESHOLD).long().cpu()
             all_preds.extend(preds.tolist())
             all_labels.extend(labels.tolist())
 
@@ -247,7 +248,7 @@ def collect_bert_predictions(
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             logits = model(input_ids=input_ids, attention_mask=attention_mask)
-            preds = (torch.sigmoid(logits) >= 0.5).long().cpu()
+            preds = (torch.sigmoid(logits) >= PRED_THRESHOLD).long().cpu()
             all_preds.extend(preds.tolist())
             all_labels.extend(batch["labels"].long().tolist())
 
@@ -351,10 +352,10 @@ def run_evaluation_distilbert_deploy(
     error_path: Optional[Path] = None,
 ) -> dict:
     """Evaluate the compact deployment DistilBERT bundle."""
-    from src.train_bert import DEPLOY_CHECKPOINT_PATH
+    from src.config import DISTILBERT_PATH
 
     return run_evaluation_distilbert(
-        checkpoint_path=checkpoint_path or DEPLOY_CHECKPOINT_PATH,
+        checkpoint_path=checkpoint_path or DISTILBERT_PATH,
         confusion_path=confusion_path
         or OUTPUTS_DIR / "confusion_matrix_distilbert_deploy.png",
         error_path=error_path or OUTPUTS_DIR / "error_analysis_distilbert_deploy.csv",
@@ -365,17 +366,17 @@ def run_evaluation_distilbert_deploy(
 
 def check_distilbert_and_evaluate():
     """Run DistilBERT evaluation if the deploy checkpoint exists, otherwise skip."""
-    from src.train_bert import DEPLOY_CHECKPOINT_PATH
+    from src.config import DISTILBERT_PATH
 
-    if not DEPLOY_CHECKPOINT_PATH.exists():
+    if not DISTILBERT_PATH.exists():
         print(
             "Skipping DistilBERT deployment evaluation: "
-            f"checkpoint not found at {DEPLOY_CHECKPOINT_PATH}"
+            f"checkpoint not found at {DISTILBERT_PATH}"
         )
         return
 
     try:
-        run_evaluation_distilbert_deploy(checkpoint_path=DEPLOY_CHECKPOINT_PATH)
+        run_evaluation_distilbert_deploy(checkpoint_path=DISTILBERT_PATH)
     except ImportError as exc:
         print(f"Skipping DistilBERT evaluation: missing dependency — {exc}")
 

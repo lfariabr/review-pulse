@@ -7,6 +7,8 @@ Usage:
 from PIL import Image
 import streamlit as st
 
+from src.config import MODEL_BASELINE, MODEL_BILSTM, MODEL_DISTILBERT
+
 # ---------------------------------------------------------------------------
 # Page config — must be the first Streamlit call
 # ---------------------------------------------------------------------------
@@ -66,15 +68,15 @@ st.divider()
 # ---------------------------------------------------------------------------
 
 MODEL_OPTIONS = {
-    "baseline": "TF-IDF + Logistic Regression  (recommended — best test F1)",
-    "bilstm":   "BiLSTM + GloVe  (neural model)",
-    "distilbert": "DistilBERT_base_uncased  (Hugging Face model)",
+    MODEL_BASELINE:   "TF-IDF + Logistic Regression  (recommended — best test F1)",
+    MODEL_BILSTM:     "BiLSTM + GloVe  (neural model)",
+    MODEL_DISTILBERT: "DistilBERT_base_uncased  (Hugging Face model)",
 }
 
 MODEL_LOADERS = {
-    "baseline": _load_baseline,
-    "bilstm": _load_bilstm,
-    "distilbert": _load_distilbert,
+    MODEL_BASELINE:   _load_baseline,
+    MODEL_BILSTM:     _load_bilstm,
+    MODEL_DISTILBERT: _load_distilbert,
 }
 
 model_name = st.radio(
@@ -87,7 +89,7 @@ model_name = st.radio(
 
 # Warm up the selected model; check DistilBERT loaded successfully.
 _distilbert_available = True
-if model_name == "distilbert":
+if model_name == MODEL_DISTILBERT:
     if _load_distilbert() is None:
         _distilbert_available = False
         st.warning(

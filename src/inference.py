@@ -20,13 +20,23 @@ from typing import Optional
 
 import torch
 
-from src.dataset import OUTPUTS_DIR, load_vocab
+from src.config import (
+    ALL_MODELS,
+    BASELINE_PATH,
+    BILSTM_CHECKPOINT_PATH,
+    DISTILBERT_PATH,
+    MODEL_BASELINE,
+    MODEL_BILSTM,
+    MODEL_DISTILBERT,
+    PRED_THRESHOLD,
+    VOCAB_PATH,
+)
+from src.dataset import load_vocab
 from src.model import BiLSTMSentiment
 from src.preprocess import clean_text
 
-CHECKPOINT_PATH = OUTPUTS_DIR / "bilstm.pt"
-VOCAB_PATH      = OUTPUTS_DIR / "vocab.json"
-BASELINE_PATH   = OUTPUTS_DIR / "baseline.joblib"
+CHECKPOINT_PATH      = BILSTM_CHECKPOINT_PATH
+DEPLOY_CHECKPOINT_PATH = DISTILBERT_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -112,10 +122,7 @@ def load_distilbert_model(checkpoint_path: Optional[Path] = None):
     """Load and cache the deployed Hugging Face DistilBERT bundle."""
     global _distilbert_cache
     if _distilbert_cache is None:
-        from src.train_bert import (
-            DEPLOY_CHECKPOINT_PATH,
-            load_pretrained_bert_bundle,
-        )
+        from src.train_bert import load_pretrained_bert_bundle
 
         _distilbert_cache = load_pretrained_bert_bundle(
             checkpoint_path or DEPLOY_CHECKPOINT_PATH
@@ -145,7 +152,7 @@ def predict_baseline(text: str, path: Optional[Path] = None) -> dict:
     confidence = float(proba[pred_idx])
     label      = "Positive review" if pred_idx == 1 else "Negative review"
 
-    return {"label": label, "confidence": round(confidence, 4), "model": "baseline"}
+    return {"label": label, "confidence": round(confidence, 4), "model": MODEL_BASELINE}
 
 
 def predict_bilstm(
@@ -175,11 +182,11 @@ def predict_bilstm(
         logit = model(tokens)                          # (1,)
         prob  = torch.sigmoid(logit).item()
 
-    pred_idx   = int(prob >= 0.5)
+    pred_idx   = int(prob >= PRED_THRESHOLD)
     confidence = prob if pred_idx == 1 else 1.0 - prob
     label      = "Positive review" if pred_idx == 1 else "Negative review"
 
-    return {"label": label, "confidence": round(confidence, 4), "model": "bilstm"}
+    return {"label": label, "confidence": round(confidence, 4), "model": MODEL_BILSTM}
 
 
 def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dict:
@@ -213,14 +220,14 @@ def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dic
         )
         prob = torch.sigmoid(logit).item()
 
-    pred_idx = int(prob >= 0.5)
+    pred_idx = int(prob >= PRED_THRESHOLD)
     confidence = prob if pred_idx == 1 else 1.0 - prob
     label = "Positive review" if pred_idx == 1 else "Negative review"
 
     return {
         "label": label,
         "confidence": round(confidence, 4),
-        "model": "distilbert",
+        "model": MODEL_DISTILBERT,
     }
 
 
@@ -228,7 +235,7 @@ def predict_distilbert(text: str, checkpoint_path: Optional[Path] = None) -> dic
 # Unified entry point
 # ---------------------------------------------------------------------------
 
-def predict_sentiment(text: str, model_name: str = "baseline") -> dict:
+def predict_sentiment(text: str, model_name: str = MODEL_BASELINE) -> dict:
     """Predict the sentiment of a review.
 
     Args:
@@ -242,16 +249,15 @@ def predict_sentiment(text: str, model_name: str = "baseline") -> dict:
     Raises:
         ValueError: If model_name is not recognised.
     """
-    if model_name == "baseline":
+    if model_name == MODEL_BASELINE:
         return predict_baseline(text)
-    elif model_name == "bilstm":
+    elif model_name == MODEL_BILSTM:
         return predict_bilstm(text)
-    elif model_name == "distilbert":
+    elif model_name == MODEL_DISTILBERT:
         return predict_distilbert(text)
     else:
         raise ValueError(
-            f"Unknown model '{model_name}'. "
-            "Choose 'baseline', 'bilstm', or 'distilbert'."
+            f"Unknown model '{model_name}'. Choose from {ALL_MODELS}."
         )
 
 
@@ -267,7 +273,7 @@ if __name__ == "__main__":
     ]
 
     for text in samples:
-        for model_name in ("baseline", "bilstm", "distilbert"):
+        for model_name in ALL_MODELS:
             result = predict_sentiment(text, model_name=model_name)
             print(f"[{result['model']:>8}] {result['label']} "
                   f"({result['confidence']:.1%}) | {text[:60]}")

@@ -15,7 +15,8 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-OUTPUTS_DIR = Path(__file__).parent.parent / "outputs"
+from src.config import OUTPUTS_DIR  # noqa: F401 — re-exported for legacy importers
+
 EMBEDDINGS_DIR = Path(__file__).parent.parent / "embeddings"
 
 PAD_TOKEN = "<pad>"   # index 0 — zero vector, masks padding in the LSTM

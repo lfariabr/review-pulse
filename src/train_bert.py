@@ -22,6 +22,7 @@ import torch.nn as nn
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader, Dataset
 
+from src.config import DISTILBERT_PATH, PRED_THRESHOLD
 from src.dataset import MAX_LEN, OUTPUTS_DIR
 from src.model_bert import (
     BERT_DROPOUT,
@@ -59,7 +60,7 @@ SEED = 42
 FREEZE_ENCODER = True
 LOCAL_FILES_ONLY = False
 
-DEPLOY_CHECKPOINT_PATH = OUTPUTS_DIR / "distilbert.pt"
+DEPLOY_CHECKPOINT_PATH = DISTILBERT_PATH
 PRETRAINED_MODEL_NAME = PRETRAINED_DISTILBERT_MODEL_NAME
 
 
@@ -222,7 +223,7 @@ def evaluate_epoch_bert(
             loss = criterion(logits, labels)
             total_loss += loss.item()
 
-            preds = (torch.sigmoid(logits) >= 0.5).long().cpu()
+            preds = (torch.sigmoid(logits) >= PRED_THRESHOLD).long().cpu()
             all_preds.extend(preds.tolist())
             all_labels.extend(batch["labels"].long().tolist())
 
