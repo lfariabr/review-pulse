@@ -69,8 +69,7 @@ else:
 # Sample reviews
 # ---------------------------------------------------------------------------
 
-from src.utils.samples import get_random_sample, get_all_samples
-_SAMPLES = get_all_samples()  # cache all samples for quick access
+from src.utils.samples import get_random_sample
 
 # Session state key for the text area value
 if "review_text" not in st.session_state:

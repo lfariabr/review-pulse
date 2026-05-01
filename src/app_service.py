@@ -40,7 +40,7 @@ def load_distilbert():
     try:
         from src.inference import load_distilbert_model
         return load_distilbert_model()
-    except (ImportError, FileNotFoundError, RuntimeError):
+    except (ImportError, FileNotFoundError, RuntimeError, OSError):
         return None
 
 

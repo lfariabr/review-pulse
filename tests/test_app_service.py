@@ -126,22 +126,24 @@ def test_warm_up_model_covers_all_registered_models(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# load_distilbert swallows expected errors
+# load_distilbert swallows expected errors (patches the real loader)
 # ---------------------------------------------------------------------------
 
-def test_load_distilbert_returns_none_on_import_error(monkeypatch):
+def _make_raiser(exc_type, msg="error"):
+    def _raise():
+        raise exc_type(msg)
+    return _raise
+
+
+@pytest.mark.parametrize("exc_type,msg", [
+    (ImportError,       "no transformers"),
+    (FileNotFoundError, "no checkpoint"),
+    (RuntimeError,      "corrupt checkpoint"),
+    (OSError,           "hf download failed"),
+])
+def test_load_distilbert_swallows_exception(monkeypatch, exc_type, msg):
+    """load_distilbert() must return None (not raise) for all expected error types."""
+    import src.inference as inference_module
+    monkeypatch.setattr(inference_module, "load_distilbert_model", _make_raiser(exc_type, msg))
     svc = _import_service()
-
-    def _bad_import():
-        raise ImportError("no transformers")
-
-    monkeypatch.setattr(svc, "load_distilbert", _bad_import)
-    # Test that is_distilbert_available handles the failure gracefully via None return
-    monkeypatch.setattr(svc, "load_distilbert", lambda: None)
-    assert svc.is_distilbert_available() is False
-
-
-def test_load_distilbert_returns_none_on_file_not_found(monkeypatch):
-    svc = _import_service()
-    monkeypatch.setattr(svc, "load_distilbert", lambda: None)
-    assert svc.is_distilbert_available() is False
+    assert svc.load_distilbert() is None
