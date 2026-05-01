@@ -200,6 +200,23 @@ def test_error_analysis_perfect_predictions_empty(tmp_path):
     assert len(errors) == 0
 
 
+def test_plot_confusion_matrix_no_write_when_save_path_none(tmp_path):
+    y_true = np.array([0, 1, 0, 1])
+    y_pred = np.array([0, 1, 1, 0])
+    cm = plot_confusion_matrix(y_true, y_pred, save_path=None)
+    assert cm.shape == (2, 2)
+    assert not any(tmp_path.iterdir())   # nothing written
+
+
+def test_error_analysis_no_write_when_save_path_none(tmp_path):
+    df     = _small_df()
+    y_true = np.array(LABELS)
+    y_pred = np.array([1, 1, 1, 0, 1, 1, 1, 0])
+    errors = error_analysis(df, y_true, y_pred, save_path=None)
+    assert len(errors) > 0              # computation still happens
+    assert not any(tmp_path.iterdir())  # nothing written
+
+
 # ---------------------------------------------------------------------------
 # integration — real data
 # ---------------------------------------------------------------------------

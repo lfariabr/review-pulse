@@ -112,11 +112,11 @@ def plot_confusion_matrix(
                     color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
-    save_path = save_path or CONFUSION_PNG
-    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(save_path, dpi=150)
+    if save_path is not None:
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(save_path, dpi=150)
+        print(f"plot_confusion_matrix: saved → {save_path}")
     plt.close()
-    print(f"plot_confusion_matrix: saved → {save_path}")
     return cm
 
 
@@ -152,11 +152,11 @@ def error_analysis(
     fn = errors[errors["error_type"] == "false_negative"].head(n_examples // 2)
     sample = pd.concat([fp, fn]).sort_index()
 
-    save_path = save_path or ERROR_CSV
-    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-    sample[["text", "true", "predicted", "error_type"]].to_csv(save_path, index=False)
-    print(f"error_analysis: {len(errors)} misclassified → {save_path} "
-          f"({len(sample)} examples saved)")
+    if save_path is not None:
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        sample[["text", "true", "predicted", "error_type"]].to_csv(save_path, index=False)
+        print(f"error_analysis: {len(errors)} misclassified → {save_path} "
+              f"({len(sample)} examples saved)")
     return errors
 
 
@@ -211,8 +211,8 @@ def run_evaluation(
     print(f"\n=== BiLSTM — test ===")
     print(classification_report(y_true, y_pred, target_names=["negative", "positive"]))
 
-    plot_confusion_matrix(y_true, y_pred, save_path=confusion_path)
-    error_analysis(test_df, y_true, y_pred, save_path=error_path)
+    plot_confusion_matrix(y_true, y_pred, save_path=confusion_path or CONFUSION_PNG)
+    error_analysis(test_df, y_true, y_pred, save_path=error_path or ERROR_CSV)
 
     # ── Baseline ────────────────────────────────────────────────────────────
     baseline = load_baseline(baseline_path or BASELINE_PATH)
