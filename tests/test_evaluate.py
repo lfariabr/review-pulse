@@ -200,6 +200,29 @@ def test_error_analysis_perfect_predictions_empty(tmp_path):
     assert len(errors) == 0
 
 
+def test_plot_confusion_matrix_no_write_when_save_path_none(monkeypatch, tmp_path):
+    import src.evaluate as eval_mod
+    default_out = tmp_path / "confusion_matrix.png"
+    monkeypatch.setattr(eval_mod, "CONFUSION_PNG", default_out)
+    y_true = np.array([0, 1, 0, 1])
+    y_pred = np.array([0, 1, 1, 0])
+    cm = plot_confusion_matrix(y_true, y_pred, save_path=None)
+    assert cm.shape == (2, 2)
+    assert not default_out.exists()   # default path not written even when patched
+
+
+def test_error_analysis_no_write_when_save_path_none(monkeypatch, tmp_path):
+    import src.evaluate as eval_mod
+    default_out = tmp_path / "error_analysis.csv"
+    monkeypatch.setattr(eval_mod, "ERROR_CSV", default_out)
+    df     = _small_df()
+    y_true = np.array(LABELS)
+    y_pred = np.array([1, 1, 1, 0, 1, 1, 1, 0])
+    errors = error_analysis(df, y_true, y_pred, save_path=None)
+    assert len(errors) > 0             # computation still happens
+    assert not default_out.exists()    # default path not written even when patched
+
+
 # ---------------------------------------------------------------------------
 # integration — real data
 # ---------------------------------------------------------------------------
