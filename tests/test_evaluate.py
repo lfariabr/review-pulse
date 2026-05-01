@@ -295,8 +295,11 @@ def test_run_evaluation_distilbert_deploy_uses_deploy_checkpoint(monkeypatch, tm
         seen["checkpoint_path"] = checkpoint_path
         return TinyBertClassifier(), tokenizer, checkpoint, torch.device("cpu")
 
+    import src.config as config_module
+
     monkeypatch.setattr(parser_module, "load_all_domains", lambda: pd.DataFrame())
     monkeypatch.setattr(preprocess_module, "preprocess", lambda raw: (None, None, test_df))
+    monkeypatch.setattr(config_module, "DISTILBERT_PATH", deploy_checkpoint)
     monkeypatch.setattr(
         train_bert_module,
         "DEPLOY_CHECKPOINT_PATH",

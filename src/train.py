@@ -15,6 +15,7 @@ import torch.nn as nn
 from sklearn.metrics import f1_score, accuracy_score
 import time
 
+from src.config import BILSTM_CHECKPOINT_PATH, PRED_THRESHOLD, VOCAB_PATH
 from src.dataset import (
     BATCH_SIZE,
     EMBEDDING_DIM,
@@ -40,8 +41,7 @@ N_LAYERS   = 2
 DROPOUT    = 0.5
 SEED       = 42
 
-CHECKPOINT_PATH = OUTPUTS_DIR / "bilstm.pt"
-VOCAB_PATH      = OUTPUTS_DIR / "vocab.json"
+CHECKPOINT_PATH = BILSTM_CHECKPOINT_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ def evaluate_epoch(
             loss   = criterion(logits, labels_device)
             total_loss += loss.item()
 
-            preds = (torch.sigmoid(logits) >= 0.5).long().cpu()
+            preds = (torch.sigmoid(logits) >= PRED_THRESHOLD).long().cpu()
             all_preds.extend(preds.tolist())
             all_labels.extend(labels.tolist())
 

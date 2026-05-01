@@ -14,8 +14,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score, accuracy_score
 from sklearn.pipeline import Pipeline
 
-OUTPUTS_DIR = Path(__file__).parent.parent / "outputs"
-MODEL_PATH = OUTPUTS_DIR / "baseline.joblib"
+from src.config import BASELINE_PATH, OUTPUTS_DIR
+
+MODEL_PATH = BASELINE_PATH
 
 
 def build_pipeline() -> Pipeline:

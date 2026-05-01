@@ -4,12 +4,10 @@ All functions accept the raw DataFrame from load_all_domains() and return
 summary DataFrames or print reports. Plot functions optionally save to outputs/.
 """
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import pandas as pd
 
-OUTPUTS_DIR = Path(__file__).parent.parent / "outputs"
+from src.config import OUTPUTS_DIR
 
 
 # --- summary tables ---
