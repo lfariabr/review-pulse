@@ -234,3 +234,36 @@ Current status:
 - `docs/assessment-files/` - presentation outline, individual report template, demo test cases
 - `docs/releaseNotes/v1.0.0.md` - baseline + BiLSTM release
 - `docs/releaseNotes/v2.0.0.md` - DistilBERT release
+
+## Issue Creator (batch issue helper)
+
+Use the local `issue_creator` helper to create many issues with one command.
+
+Template file:
+
+- `docs/templates/issue_creator.template.json`
+- `docs/issueBreakdown-phaseX.md` (same format as phase3: `### Issue #NN - title`)
+
+Commands:
+
+```bash
+# Dry-run (default)
+./scripts/issue_creator.sh docs/templates/issue_creator.template.json
+
+# Dry-run from markdown breakdown
+./scripts/issue_creator.sh docs/issueBreakdown-phase3.md
+
+# Create for real
+./scripts/issue_creator.sh docs/templates/issue_creator.template.json --create
+
+# Create for real from markdown breakdown
+./scripts/issue_creator.sh docs/issueBreakdown-phase3.md --create
+```
+
+You can also call Python directly:
+
+```bash
+python3 scripts/issue_creator.py --template docs/templates/issue_creator.template.json --create
+```
+
+If you pass a `.json` path that does not exist but a sibling `.md` exists, the script automatically falls back to the markdown file.

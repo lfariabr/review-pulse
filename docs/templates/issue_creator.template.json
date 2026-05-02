@@ -1,0 +1,22 @@
+{
+  "repo": "lfariabr/review-pulse",
+  "defaults": {
+    "labels": ["refactor", "tracking"]
+  },
+  "issues": [
+    {
+      "title": "Phase X: issue title 01",
+      "body": "## Goal\nDescribe the outcome.\n\n## Scope\n- Item A\n- Item B\n\n## Acceptance\n- [ ] Clear acceptance criterion 1\n- [ ] Clear acceptance criterion 2\n\n## Notes\nAny constraints, risks, or links.",
+      "labels": ["phase-x"],
+      "assignees": [],
+      "milestone": null
+    },
+    {
+      "title": "Phase X: issue title 02",
+      "body": "## Goal\nDescribe the outcome.\n\n## Scope\n- Item A\n- Item B\n\n## Acceptance\n- [ ] Clear acceptance criterion 1\n- [ ] Clear acceptance criterion 2\n\n## Notes\nAny constraints, risks, or links.",
+      "labels": ["phase-x"],
+      "assignees": [],
+      "milestone": null
+    }
+  ]
+}

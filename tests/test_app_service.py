@@ -1,6 +1,6 @@
 # .venv/bin/pytest tests/test_app_service.py -v
 
-"""Tests for src/app_service.py."""
+"""Tests for src.app.service."""
 
 import sys
 import types
@@ -28,9 +28,10 @@ def _patch_streamlit(monkeypatch):
     """Replace streamlit with a minimal stub before each test."""
     stub = _make_st_stub()
     monkeypatch.setitem(sys.modules, "streamlit", stub)
-    # Force reload so app_service picks up the stub
-    if "src.app_service" in sys.modules:
-        monkeypatch.delitem(sys.modules, "src.app_service")
+    # Force reload so service picks up the stub
+    for module_name in ("src.app.service", "src.app_service"):
+        if module_name in sys.modules:
+            monkeypatch.delitem(sys.modules, module_name)
     yield
 
 
@@ -40,7 +41,7 @@ def _patch_streamlit(monkeypatch):
 
 def _import_service():
     import importlib
-    return importlib.import_module("src.app_service")
+    return importlib.import_module("src.app.service")
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +65,18 @@ def test_distilbert_unavailable_msg_is_nonempty():
     svc = _import_service()
     assert isinstance(svc.DISTILBERT_UNAVAILABLE_MSG, str)
     assert svc.DISTILBERT_UNAVAILABLE_MSG.strip()
+
+
+def test_app_service_compat_wrapper_exports_public_api():
+    import importlib
+
+    svc = _import_service()
+    compat = importlib.import_module("src.app_service")
+
+    assert compat.MODEL_OPTIONS == svc.MODEL_OPTIONS
+    assert compat.DISTILBERT_UNAVAILABLE_MSG == svc.DISTILBERT_UNAVAILABLE_MSG
+    assert compat.warm_up_model is svc.warm_up_model
+    assert compat.is_distilbert_available is svc.is_distilbert_available
 
 
 # ---------------------------------------------------------------------------

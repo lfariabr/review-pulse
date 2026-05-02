@@ -68,12 +68,12 @@ def test_inference_does_not_import_parser():
 
 
 # ---------------------------------------------------------------------------
-# src.app_service — presentation service; must not touch training
+# src.app.service — presentation service; must not touch training
 # ---------------------------------------------------------------------------
 
 def test_app_service_does_not_import_train():
     _assert_no_imports(
-        "src.app_service",
+        "src.app.service",
         forbidden=["src.train", "src.train_bert"],
         stub_streamlit=True,
     )
@@ -81,7 +81,7 @@ def test_app_service_does_not_import_train():
 
 def test_app_service_does_not_import_evaluate():
     _assert_no_imports(
-        "src.app_service",
+        "src.app.service",
         forbidden=["src.evaluate"],
         stub_streamlit=True,
     )
@@ -89,7 +89,7 @@ def test_app_service_does_not_import_evaluate():
 
 def test_app_service_does_not_import_parser():
     _assert_no_imports(
-        "src.app_service",
+        "src.app.service",
         forbidden=["src.parser"],
         stub_streamlit=True,
     )

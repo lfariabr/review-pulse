@@ -7,7 +7,7 @@ Usage:
 from PIL import Image
 import streamlit as st
 
-from src.app_service import (
+from src.app.service import (
     DISTILBERT_UNAVAILABLE_MSG,
     MODEL_OPTIONS,
     is_distilbert_available,
@@ -69,7 +69,7 @@ else:
 # Sample reviews
 # ---------------------------------------------------------------------------
 
-from src.utils.samples import get_random_sample
+from src.app.samples import get_random_sample
 
 # Session state key for the text area value
 if "review_text" not in st.session_state:
