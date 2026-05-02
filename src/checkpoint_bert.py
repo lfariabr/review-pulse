@@ -13,7 +13,7 @@ import torch
 
 from src.config import DISTILBERT_PATH
 from src.dataset_bert import LOCAL_FILES_ONLY, resolve_device
-from src.model_bert import (
+from src.models.bert import (
     BERT_DROPOUT,
     PRETRAINED_DISTILBERT_MODEL_NAME,
     DistilBERTSentiment,

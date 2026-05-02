@@ -32,7 +32,7 @@ from src.config import (
     VOCAB_PATH,
 )
 from src.dataset import load_vocab
-from src.model import BiLSTMSentiment
+from src.models.bilstm import BiLSTMSentiment
 from src.preprocess import clean_text
 
 CHECKPOINT_PATH        = BILSTM_CHECKPOINT_PATH
@@ -93,7 +93,7 @@ def load_baseline_model(path: Optional[Path] = None):
     """Load and cache the TF-IDF + LogReg pipeline."""
     global _baseline_cache
     if _baseline_cache is None:
-        from src.baseline import load_baseline
+        from src.models.baseline import load_baseline
         _baseline_cache = load_baseline(path or BASELINE_PATH)
     return _baseline_cache
 

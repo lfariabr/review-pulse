@@ -27,7 +27,7 @@ from src.dataset import (
     make_dataloaders,
     save_vocab,
 )
-from src.model import BiLSTMSentiment
+from src.models.bilstm import BiLSTMSentiment
 
 # ---------------------------------------------------------------------------
 # Hyperparameters

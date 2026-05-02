@@ -9,8 +9,8 @@ import pandas as pd
 import torch
 from transformers import DistilBertConfig, DistilBertForSequenceClassification
 
-import src.model_bert as model_bert_module
-from src.model_bert import DistilBERTSentiment
+import src.models.bert as model_bert_module
+from src.models.bert import DistilBERTSentiment
 from tiny_tokenizer import TinyTokenizer
 from src.train_bert import (
     evaluate_epoch_bert,

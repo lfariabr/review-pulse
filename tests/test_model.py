@@ -1,12 +1,12 @@
 # .venv/bin/pytest tests/test_model.py -v
 
-"""Tests for src/model.py — BiLSTMSentiment."""
+"""Tests for src.models.bilstm — BiLSTMSentiment."""
 
 import numpy as np
 import pytest
 import torch
 
-from src.model import BiLSTMSentiment
+from src.models.bilstm import BiLSTMSentiment
 
 # ---------------------------------------------------------------------------
 # shared constants
@@ -43,6 +43,12 @@ def _batch(batch=BATCH, seq_len=SEQ_LEN) -> torch.Tensor:
 
 def test_model_is_nn_module():
     assert isinstance(_model(), torch.nn.Module)
+
+
+def test_legacy_model_wrapper_exports_same_class():
+    from src.model import BiLSTMSentiment as LegacyBiLSTMSentiment
+
+    assert LegacyBiLSTMSentiment is BiLSTMSentiment
 
 
 def test_model_has_embedding():

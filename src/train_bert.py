@@ -49,7 +49,7 @@ from src.checkpoint_bert import (       # noqa: F401 — re-exported for callers
     _trainable_encoder_layer_indexes,
     load_pretrained_bert_bundle,
 )
-from src.model_bert import (
+from src.models.bert import (
     BERT_DROPOUT,
     DISTILBERT_MODEL_NAME,
     PRETRAINED_DISTILBERT_MODEL_NAME,

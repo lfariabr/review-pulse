@@ -33,7 +33,7 @@ from src.config import (
 )
 from src.dataset import load_vocab, make_dataloaders
 from src.inference import load_checkpoint   # avoids pulling matplotlib into app startup
-from src.model import BiLSTMSentiment
+from src.models.bilstm import BiLSTMSentiment
 from src.train import evaluate_epoch
 
 CHECKPOINT_PATH    = BILSTM_CHECKPOINT_PATH
@@ -196,7 +196,7 @@ def run_evaluation(
     """
     from src.parser import load_all_domains
     from src.preprocess import preprocess
-    from src.baseline import load_baseline, evaluate_baseline
+    from src.models.baseline import load_baseline, evaluate_baseline
 
     # ── Data ────────────────────────────────────────────────────────────────
     raw = load_all_domains()

@@ -1,6 +1,6 @@
 # .venv/bin/pytest tests/test_model_bert.py -v
 
-"""Tests for src/model_bert.py — Hugging Face DistilBERT sentiment model."""
+"""Tests for src.models.bert — Hugging Face DistilBERT sentiment model."""
 
 import pytest
 pytest.importorskip("transformers")
@@ -8,8 +8,8 @@ pytest.importorskip("transformers")
 import torch
 from transformers import DistilBertConfig, DistilBertForSequenceClassification
 
-import src.model_bert as model_bert
-from src.model_bert import DistilBERTSentiment, PretrainedDistilBERTSentiment
+import src.models.bert as model_bert
+from src.models.bert import DistilBERTSentiment, PretrainedDistilBERTSentiment
 
 VOCAB_SIZE = 100
 BATCH = 4
@@ -57,6 +57,16 @@ def _batch(batch=BATCH, seq_len=SEQ_LEN) -> tuple[torch.Tensor, torch.Tensor]:
 
 def test_model_is_nn_module(monkeypatch):
     assert isinstance(_model(monkeypatch), torch.nn.Module)
+
+
+def test_legacy_model_bert_wrapper_exports_same_classes():
+    from src.model_bert import (
+        DistilBERTSentiment as LegacyDistilBERTSentiment,
+        PretrainedDistilBERTSentiment as LegacyPretrainedDistilBERTSentiment,
+    )
+
+    assert LegacyDistilBERTSentiment is DistilBERTSentiment
+    assert LegacyPretrainedDistilBERTSentiment is PretrainedDistilBERTSentiment
 
 
 def test_model_uses_hugging_face_distilbert_classifier(monkeypatch):

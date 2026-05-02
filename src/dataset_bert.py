@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from src.dataset import MAX_LEN
-from src.model_bert import DISTILBERT_MODEL_NAME, PRETRAINED_DISTILBERT_MODEL_NAME
+from src.models.bert import DISTILBERT_MODEL_NAME, PRETRAINED_DISTILBERT_MODEL_NAME
 
 try:
     from transformers import AutoTokenizer

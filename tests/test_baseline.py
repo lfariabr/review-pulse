@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from sklearn.pipeline import Pipeline
 
-from src.baseline import (
+from src.models.baseline import (
     build_pipeline,
     evaluate_baseline,
     load_baseline,
@@ -48,6 +48,20 @@ def _small_df(texts=ALL_TEXTS, labels=ALL_LABELS) -> pd.DataFrame:
 
 def test_build_pipeline_returns_pipeline():
     assert isinstance(build_pipeline(), Pipeline)
+
+
+def test_legacy_baseline_wrapper_exports_public_api():
+    from src.baseline import (
+        build_pipeline as legacy_build_pipeline,
+        evaluate_baseline as legacy_evaluate_baseline,
+        load_baseline as legacy_load_baseline,
+        train_baseline as legacy_train_baseline,
+    )
+
+    assert legacy_build_pipeline is build_pipeline
+    assert legacy_evaluate_baseline is evaluate_baseline
+    assert legacy_load_baseline is load_baseline
+    assert legacy_train_baseline is train_baseline
 
 
 def test_build_pipeline_has_tfidf_and_clf():
