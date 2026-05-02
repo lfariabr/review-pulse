@@ -31,9 +31,10 @@ from src.config import (
     PRED_THRESHOLD,
     VOCAB_PATH,
 )
-from src.dataset import load_vocab, make_dataloaders
 from src.inference import load_checkpoint   # avoids pulling matplotlib into app startup
 from src.models.bilstm import BiLSTMSentiment
+from src.tokenization.sequence import make_dataloaders
+from src.tokenization.vocab import load_vocab
 from src.train import evaluate_epoch
 
 CHECKPOINT_PATH    = BILSTM_CHECKPOINT_PATH

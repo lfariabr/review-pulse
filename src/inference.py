@@ -31,9 +31,9 @@ from src.config import (
     PRED_THRESHOLD,
     VOCAB_PATH,
 )
-from src.dataset import load_vocab
 from src.models.bilstm import BiLSTMSentiment
 from src.preprocess import clean_text
+from src.tokenization.vocab import load_vocab
 
 CHECKPOINT_PATH        = BILSTM_CHECKPOINT_PATH
 DEPLOY_CHECKPOINT_PATH = DISTILBERT_PATH
@@ -165,7 +165,7 @@ class BiLSTMPredictor:
         checkpoint_path: Optional[Path] = None,
         vocab_path: Optional[Path] = None,
     ) -> dict:
-        from src.dataset import tokenize_and_pad, MAX_LEN
+        from src.tokenization.sequence import MAX_LEN, tokenize_and_pad
 
         model, vocab, device = load_bilstm_model(checkpoint_path, vocab_path)
         cleaned = clean_text(text)

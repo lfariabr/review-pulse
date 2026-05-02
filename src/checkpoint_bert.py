@@ -12,7 +12,7 @@ from typing import Any, Optional
 import torch
 
 from src.config import DISTILBERT_PATH
-from src.dataset_bert import LOCAL_FILES_ONLY, resolve_device
+from src.tokenization.bert import LOCAL_FILES_ONLY, resolve_device
 from src.models.bert import (
     BERT_DROPOUT,
     PRETRAINED_DISTILBERT_MODEL_NAME,
@@ -53,7 +53,7 @@ def _load_tokenizer_from_checkpoint(
     local_files_only: bool,
 ):
     """Load an embedded tokenizer payload, falling back to Hugging Face."""
-    from src.dataset_bert import load_tokenizer
+    from src.tokenization.bert import load_tokenizer
 
     tokenizer_files = checkpoint.get("tokenizer_files")
     if tokenizer_files:

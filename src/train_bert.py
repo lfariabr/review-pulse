@@ -9,8 +9,8 @@ Usage:
 
 Module layout
 ─────────────
-  src/dataset_bert.py    — device resolution, tokenizer, BertReviewDataset,
-                           DataLoader factories
+  src/tokenization/bert.py — device resolution, tokenizer, BertReviewDataset,
+                             DataLoader factories
   src/checkpoint_bert.py — checkpoint serialization and bundle loading
   src/train_bert.py      — training loop, stage orchestration, CLI
                            (this file; re-exports from the above two)
@@ -27,8 +27,8 @@ import torch.nn as nn
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
 
-from src.config import PRED_THRESHOLD
-from src.dataset_bert import (          # noqa: F401 — re-exported for callers
+from src.config import OUTPUTS_DIR, PRED_THRESHOLD
+from src.tokenization.bert import (     # noqa: F401 - re-exported for callers
     BATCH_SIZE,
     LOCAL_FILES_ONLY,
     MODEL_NAME,
@@ -55,7 +55,7 @@ from src.models.bert import (
     PRETRAINED_DISTILBERT_MODEL_NAME,
     DistilBERTSentiment,
 )
-from src.dataset import MAX_LEN, OUTPUTS_DIR
+from src.tokenization.sequence import MAX_LEN
 
 try:
     from transformers import AutoTokenizer
