@@ -15,16 +15,17 @@ import torch.nn as nn
 from sklearn.metrics import f1_score, accuracy_score
 import time
 
-from src.config import BILSTM_CHECKPOINT_PATH, PRED_THRESHOLD, VOCAB_PATH
-from src.dataset import (
+from src.config import BILSTM_CHECKPOINT_PATH, OUTPUTS_DIR, PRED_THRESHOLD, VOCAB_PATH
+from src.tokenization.sequence import (
     BATCH_SIZE,
-    EMBEDDING_DIM,
     MAX_LEN,
-    OUTPUTS_DIR,
+    make_dataloaders,
+)
+from src.tokenization.vocab import (
     EMBEDDINGS_DIR,
+    EMBEDDING_DIM,
     build_vocab,
     load_glove,
-    make_dataloaders,
     save_vocab,
 )
 from src.models.bilstm import BiLSTMSentiment

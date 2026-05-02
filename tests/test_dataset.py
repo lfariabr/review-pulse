@@ -8,15 +8,17 @@ import numpy as np
 import pytest
 import torch
 
-from src.dataset import (
+from src.tokenization.sequence import (
+    ReviewDataset,
+    make_dataloaders,
+    tokenize_and_pad,
+)
+from src.tokenization.vocab import (
     PAD_TOKEN,
     UNK_TOKEN,
-    ReviewDataset,
     build_vocab,
     load_vocab,
-    make_dataloaders,
     save_vocab,
-    tokenize_and_pad,
 )
 
 import pandas as pd
@@ -47,6 +49,17 @@ def test_vocab_contains_pad_and_unk():
     vocab = build_vocab(TRAIN_TEXTS)
     assert PAD_TOKEN in vocab
     assert UNK_TOKEN in vocab
+
+
+def test_dataset_wrapper_exports_tokenization_api():
+    from src import dataset
+
+    assert dataset.build_vocab is build_vocab
+    assert dataset.save_vocab is save_vocab
+    assert dataset.load_vocab is load_vocab
+    assert dataset.tokenize_and_pad is tokenize_and_pad
+    assert dataset.ReviewDataset is ReviewDataset
+    assert dataset.make_dataloaders is make_dataloaders
 
 
 def test_pad_is_index_zero():
