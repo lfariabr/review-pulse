@@ -73,13 +73,6 @@ review-pulse/
       bert.py               # DistilBERT evaluation runner
       runner.py             # CLI orchestration
 
-    inference.py            # compatibility wrapper for src.inference
-    evaluate.py             # CLI-compatible wrapper for src.evaluation
-
-    parser.py, preprocess.py, dataset.py,
-    baseline.py, model.py,
-    train.py, train_bert.py # compatibility wrappers for older imports/commands
-
     utils/
       samples.py            # Streamlit demo review samples
 
@@ -170,20 +163,12 @@ Train DistilBERT:
 python -m src.training.bert
 ```
 
-The legacy wrapper commands still work:
-
-```bash
-python -m src.baseline
-python -m src.train
-python -m src.train_bert
-```
-
 `src.training.bert` uses Hugging Face `distilbert-base-uncased`, freezes the encoder for head training, then fine-tunes the last encoder layers. It writes the deployment artifact to `outputs/distilbert.pt`.
 
 ## Evaluate
 
 ```bash
-python -m src.evaluate
+python -m src.evaluation.runner
 ```
 
 Evaluation loads the trained artifacts, runs the held-out test split, prints metrics, and writes generated reports to `outputs/`.
@@ -191,7 +176,7 @@ Evaluation loads the trained artifacts, runs the held-out test split, prints met
 Evaluation helpers can also run without file side effects:
 
 ```python
-from src.evaluate import run_evaluation
+from src.evaluation import run_evaluation
 
 metrics = run_evaluation(save_outputs=False)
 ```
@@ -209,7 +194,7 @@ The app lets the user:
 - classify sentiment;
 - inspect the confidence and raw prediction payload.
 
-Model loading and availability checks live in `src/app/service.py`; `src/app_service.py` remains as a compatibility wrapper. `app.py` stays focused on UI.
+Model loading and availability checks live in `src/app/service.py`. `app.py` stays focused on UI.
 
 ## Inference API
 
@@ -256,7 +241,7 @@ pytest tests/
 
 Current status:
 
-- Fast suite: 204 passed, 5 deselected
+- Fast suite: 194 passed, 5 deselected
 - Full suite: run before final submission or release if an exact count is needed
 
 ## Documentation Map
@@ -270,6 +255,7 @@ Current status:
 - `docs/releaseNotes/v2.0.0.md` - DistilBERT release
 - `docs/releaseNotes/v2.1.0.md` - refactor track release
 - `docs/releaseNotes/v2.2.0.md` - modular package release
+- `docs/releaseNotes/v2.3.0-draft.md` - compatibility wrapper removal draft
 
 ## Issue Creator (batch issue helper)
 

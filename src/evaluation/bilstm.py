@@ -58,8 +58,8 @@ def run_evaluation(
     save_outputs: bool = True,
 ) -> dict:
     """Full evaluation pipeline: load model, run on test set, compare to baseline."""
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
+    from src.data.parser import load_all_domains
+    from src.data.preprocess import preprocess
     from src.training.baseline import evaluate_baseline, load_baseline
 
     raw = load_all_domains()

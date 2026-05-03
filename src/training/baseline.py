@@ -96,8 +96,8 @@ def load_baseline(path: Optional[Path] = None) -> Pipeline:
 
 def main() -> None:
     """Train and evaluate the baseline model from the CLI."""
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
+    from src.data.parser import load_all_domains
+    from src.data.preprocess import preprocess
 
     raw = load_all_domains()
     train, val, test = preprocess(raw)

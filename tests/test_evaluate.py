@@ -1,24 +1,25 @@
 # .venv/bin/pytest tests/test_evaluate.py -v
 # .venv/bin/pytest tests/test_evaluate.py -v -m "not slow"
 
-"""Tests for src/evaluate.py."""
+"""Tests for src.evaluation."""
 
 import numpy as np
 import pandas as pd
 import pytest
 import torch
 
-from src.evaluate import (
+from src.evaluation import (
     collect_predictions,
     compute_metrics,
     error_analysis,
-    load_checkpoint,
     plot_confusion_matrix,
     run_evaluation_distilbert_deploy,
     run_evaluation_distilbert,
 )
-from src.model import BiLSTMSentiment
-from src.dataset import build_vocab, make_dataloaders
+from src.inference import load_checkpoint
+from src.models.bilstm import BiLSTMSentiment
+from src.tokenization.sequence import make_dataloaders
+from src.tokenization.vocab import build_vocab
 from tiny_tokenizer import TinyTokenizer
 
 # ---------------------------------------------------------------------------
@@ -252,7 +253,7 @@ def test_error_analysis_perfect_predictions_empty(tmp_path):
 
 
 def test_plot_confusion_matrix_no_write_when_save_path_none(monkeypatch, tmp_path):
-    import src.evaluate as eval_mod
+    import src.evaluation as eval_mod
     default_out = tmp_path / "confusion_matrix.png"
     monkeypatch.setattr(eval_mod, "CONFUSION_PNG", default_out)
     y_true = np.array([0, 1, 0, 1])
@@ -263,7 +264,7 @@ def test_plot_confusion_matrix_no_write_when_save_path_none(monkeypatch, tmp_pat
 
 
 def test_error_analysis_no_write_when_save_path_none(monkeypatch, tmp_path):
-    import src.evaluate as eval_mod
+    import src.evaluation as eval_mod
     default_out = tmp_path / "error_analysis.csv"
     monkeypatch.setattr(eval_mod, "ERROR_CSV", default_out)
     df     = _small_df()
@@ -282,7 +283,7 @@ def test_error_analysis_no_write_when_save_path_none(monkeypatch, tmp_path):
 def test_run_evaluation_returns_metrics():
     """Full evaluation pipeline on real data."""
     import tempfile
-    from src.evaluate import run_evaluation
+    from src.evaluation import run_evaluation
 
     with tempfile.TemporaryDirectory() as tmp:
         result = run_evaluation(
@@ -297,8 +298,8 @@ def test_run_evaluation_returns_metrics():
 
 def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
     """DistilBERT evaluation should return metrics for the HF checkpoint."""
-    import src.parser as parser_module
-    import src.preprocess as preprocess_module
+    import src.data.parser as parser_module
+    import src.data.preprocess as preprocess_module
     import src.training.bert as train_bert_module
 
     test_df = _small_df()
@@ -345,8 +346,8 @@ def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
 
 def test_run_evaluation_distilbert_deploy_uses_deploy_checkpoint(monkeypatch, tmp_path):
     """Deployment DistilBERT evaluation should load the compact deploy bundle."""
-    import src.parser as parser_module
-    import src.preprocess as preprocess_module
+    import src.data.parser as parser_module
+    import src.data.preprocess as preprocess_module
     import src.training.bert as train_bert_module
 
     test_df = _small_df()

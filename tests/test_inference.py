@@ -1,7 +1,7 @@
 # .venv/bin/pytest tests/test_inference.py -v
 # .venv/bin/pytest tests/test_inference.py -v -m "not slow"
 
-"""Tests for src/inference.py."""
+"""Tests for src.inference."""
 
 import json
 import joblib
@@ -13,8 +13,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 
-from src.model import BiLSTMSentiment
-from src.dataset import build_vocab, save_vocab
+from src.models.bilstm import BiLSTMSentiment
+from src.tokenization.vocab import build_vocab, save_vocab
 
 # ---------------------------------------------------------------------------
 # Fixtures — save minimal artefacts so tests don't need real model files

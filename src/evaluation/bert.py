@@ -85,8 +85,8 @@ def _run_distilbert_evaluation(
 
 def _load_distilbert_test_df() -> pd.DataFrame:
     """Load the held-out test split used by DistilBERT evaluation helpers."""
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
+    from src.data.parser import load_all_domains
+    from src.data.preprocess import preprocess
 
     raw = load_all_domains()
     _, _, test_df = preprocess(raw)
