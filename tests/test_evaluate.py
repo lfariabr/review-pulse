@@ -299,7 +299,7 @@ def test_run_evaluation_distilbert_returns_metrics(monkeypatch, tmp_path):
     """DistilBERT evaluation should return metrics for the HF checkpoint."""
     import src.parser as parser_module
     import src.preprocess as preprocess_module
-    import src.train_bert as train_bert_module
+    import src.training.bert as train_bert_module
 
     test_df = _small_df()
     vocab = build_vocab(test_df["text"], min_freq=1)
@@ -347,7 +347,7 @@ def test_run_evaluation_distilbert_deploy_uses_deploy_checkpoint(monkeypatch, tm
     """Deployment DistilBERT evaluation should load the compact deploy bundle."""
     import src.parser as parser_module
     import src.preprocess as preprocess_module
-    import src.train_bert as train_bert_module
+    import src.training.bert as train_bert_module
 
     test_df = _small_df()
     deploy_checkpoint = tmp_path / "distilbert_deploy" / "metadata.pt"

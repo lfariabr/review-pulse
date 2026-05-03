@@ -35,7 +35,7 @@ from src.inference import load_checkpoint   # avoids pulling matplotlib into app
 from src.models.bilstm import BiLSTMSentiment
 from src.tokenization.sequence import make_dataloaders
 from src.tokenization.vocab import load_vocab
-from src.train import evaluate_epoch
+from src.training.bilstm import evaluate_epoch
 
 CHECKPOINT_PATH    = BILSTM_CHECKPOINT_PATH
 CONFUSION_PNG      = OUTPUTS_DIR / "confusion_matrix.png"
@@ -197,7 +197,7 @@ def run_evaluation(
     """
     from src.parser import load_all_domains
     from src.preprocess import preprocess
-    from src.models.baseline import load_baseline, evaluate_baseline
+    from src.training.baseline import load_baseline, evaluate_baseline
 
     # ── Data ────────────────────────────────────────────────────────────────
     raw = load_all_domains()
@@ -292,7 +292,7 @@ def _run_distilbert_evaluation(
     error_path: Path,
 ) -> dict:
     """Evaluate the Hugging Face DistilBERT model on the held-out test split."""
-    from src.train_bert import make_bert_test_loader
+    from src.training.bert import make_bert_test_loader
 
     model_cfg = checkpoint.get("model_config", {})
     batch_size = int(model_cfg.get("batch_size", 64))
@@ -343,7 +343,7 @@ def run_evaluation_distilbert(
     label: str = "DistilBERT",
 ) -> dict:
     """Evaluate the saved Hugging Face DistilBERT checkpoint."""
-    from src.train_bert import load_pretrained_bert_bundle
+    from src.training.bert import load_pretrained_bert_bundle
 
     test_df = _load_distilbert_test_df()
     model, tokenizer, checkpoint, device = load_pretrained_bert_bundle(

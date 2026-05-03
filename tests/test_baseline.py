@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from sklearn.pipeline import Pipeline
 
-from src.models.baseline import (
+from src.training.baseline import (
     build_pipeline,
     evaluate_baseline,
     load_baseline,
@@ -62,6 +62,20 @@ def test_legacy_baseline_wrapper_exports_public_api():
     assert legacy_evaluate_baseline is evaluate_baseline
     assert legacy_load_baseline is load_baseline
     assert legacy_train_baseline is train_baseline
+
+
+def test_models_baseline_wrapper_exports_public_api():
+    from src.models.baseline import (
+        build_pipeline as model_build_pipeline,
+        evaluate_baseline as model_evaluate_baseline,
+        load_baseline as model_load_baseline,
+        train_baseline as model_train_baseline,
+    )
+
+    assert model_build_pipeline is build_pipeline
+    assert model_evaluate_baseline is evaluate_baseline
+    assert model_load_baseline is load_baseline
+    assert model_train_baseline is train_baseline
 
 
 def test_build_pipeline_has_tfidf_and_clf():
