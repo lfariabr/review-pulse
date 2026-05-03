@@ -156,8 +156,8 @@ def test_load_baseline_roundtrip(tmp_path):
 @pytest.mark.slow
 def test_baseline_real_data_accuracy():
     """Sanity check: baseline must exceed 80% accuracy on the real val split."""
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
+    from src.data.parser import load_all_domains
+    from src.data.preprocess import preprocess
     import tempfile
 
     raw = load_all_domains()
