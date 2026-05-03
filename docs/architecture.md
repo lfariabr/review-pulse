@@ -1,6 +1,6 @@
 # ReviewPulse — Architecture
 
-> Written for a new contributor. Describes where each concern lives today and names the intended boundaries for the v2.x refactor series.
+> Written for a new contributor. Describes where each concern lives after the v2.2.0 modular package refactor.
 
 ---
 
@@ -11,20 +11,47 @@ review-pulse/
 ├── app.py                  ← Streamlit UI (layout + input + result display only)
 ├── src/
 │   ├── config.py           ← single source of truth: paths, model name constants, threshold
-│   ├── app_service.py      ← cached model loaders + DistilBERT availability helpers for app.py
-│   ├── parser.py           ← raw data → DataFrame
-│   ├── preprocess.py       ← cleaning, auditing, splitting
-│   ├── dataset.py          ← vocab, GloVe loader, PyTorch Dataset + DataLoaders
-│   ├── features.py         ← EDA helpers (balance, length stats, plots)
-│   ├── baseline.py         ← TF-IDF + LogReg: train, evaluate, load
-│   ├── model.py            ← BiLSTMSentiment nn.Module
-│   ├── train.py            ← BiLSTM training loop + checkpointing
-│   ├── model_bert.py       ← DistilBERTSentiment nn.Module (HF wrapper)
-│   ├── dataset_bert.py     ← DistilBERT tokenizer, BertReviewDataset, DataLoader factories
+│   ├── app/
+│   │   └── service.py      ← cached app loaders + DistilBERT availability helpers for app.py
+│   ├── data/
+│   │   ├── parser.py       ← raw data → DataFrame
+│   │   ├── preprocess.py   ← cleaning, auditing, splitting
+│   │   └── features.py     ← EDA helpers (balance, length stats, plots)
+│   ├── tokenization/
+│   │   ├── vocab.py        ← vocabulary build/save/load helpers
+│   │   ├── sequence.py     ← BiLSTM tokenization, Dataset, DataLoader factories
+│   │   └── bert.py         ← DistilBERT tokenizer, BertReviewDataset, DataLoader factories
+│   ├── models/
+│   │   ├── baseline.py     ← TF-IDF + LogReg pipeline factory
+│   │   ├── bilstm.py       ← BiLSTMSentiment nn.Module
+│   │   └── bert.py         ← DistilBERTSentiment nn.Module (HF wrapper)
+│   ├── training/
+│   │   ├── baseline.py     ← TF-IDF + LogReg: train, evaluate, load
+│   │   ├── bilstm.py       ← BiLSTM training loop + checkpointing
+│   │   └── bert.py         ← DistilBERT training loop + stage orchestration
 │   ├── checkpoint_bert.py  ← DistilBERT checkpoint serialization and bundle loading
-│   ├── train_bert.py       ← DistilBERT training loop + stage orchestration
-│   ├── evaluate.py         ← batch evaluation: metrics, confusion matrix, error analysis
-│   ├── inference.py        ← single-text prediction; module-level model caching
+│   ├── inference/
+│   │   ├── loaders.py      ← artifact/model loading and module-level caches
+│   │   ├── predictors.py   ← Predictor protocol + concrete predictors
+│   │   ├── registry.py     ← predictor registry
+│   │   └── api.py          ← predict_sentiment() public API
+│   ├── evaluation/
+│   │   ├── metrics.py      ← metric computation
+│   │   ├── plots.py        ← confusion matrix PNG helper
+│   │   ├── errors.py       ← error-analysis CSV helper
+│   │   ├── bilstm.py       ← BiLSTM + baseline evaluation runner
+│   │   ├── bert.py         ← DistilBERT evaluation runner
+│   │   └── runner.py       ← CLI orchestration
+│   ├── parser.py           ← compatibility wrapper for src.data.parser
+│   ├── preprocess.py       ← compatibility wrapper for src.data.preprocess
+│   ├── dataset.py          ← compatibility wrapper for tokenization helpers
+│   ├── baseline.py         ← compatibility wrapper for src.training.baseline
+│   ├── model.py            ← compatibility wrapper for src.models.bilstm
+│   ├── train.py            ← compatibility wrapper for src.training.bilstm
+│   ├── train_bert.py       ← compatibility wrapper for src.training.bert
+│   ├── app_service.py      ← compatibility wrapper for src.app.service
+│   ├── inference.py        ← compatibility wrapper for src.inference
+│   ├── evaluate.py         ← CLI-compatible wrapper for src.evaluation
 │   └── utils/
 │       └── samples.py      ← demo review samples for Streamlit app
 ├── outputs/                ← committed model artifacts + generated evaluation reports (PNG/CSV gitignored)
@@ -38,7 +65,7 @@ review-pulse/
 │   ├── electronics/
 │   └── kitchen_&_housewares/
 ├── embeddings/             ← GloVe vectors (not in git, ~800 MB)
-├── tests/                  ← 189 fast tests + 5 slow integration tests
+├── tests/                  ← pytest suite, including boundary and compatibility tests
 └── docs/                   ← project documentation
 ```
 
@@ -68,12 +95,12 @@ data/{domain}/positive.review
 data/{domain}/negative.review
         │
         ▼
-src/parser.py
+src.data.parser
   parse_review_file()      — BeautifulSoup pseudo-XML → list[dict]
   load_all_domains()       — iterates 4 domains → pd.DataFrame (8,000 rows)
         │
         ▼
-src/preprocess.py
+src.data.preprocess
   audit_labels()           — flag is_ambiguous, rating_conflict
   drop_ambiguous()         — remove 3-star rows (0 dropped on this dataset)
   clean_text()             — lowercase, strip HTML, expand negations, remove punctuation
@@ -91,7 +118,7 @@ Training:
   train_df.text
         │
         ▼
-  src/baseline.py
+  src.training.baseline
     build_pipeline()       — TfidfVectorizer(ngram_range=(1,2)) + LogisticRegression
     train_baseline()       — fits pipeline, saves → outputs/baseline.joblib
         │
@@ -99,7 +126,7 @@ Training:
   outputs/baseline.joblib
 
 Inference (one text):
-  src/inference.py
+  src.inference
     load_baseline_model()  — joblib.load, cached in _baseline_cache
     predict_baseline()     — clean_text → pipeline.predict_proba → dict
 ```
@@ -123,25 +150,25 @@ Training:
   train_df.text
         │
         ▼
-  src/dataset.py
+  src.tokenization.vocab / src.tokenization.sequence
     build_vocab()          — token counts from train_df only (no leakage), min_freq=2
     save_vocab()           — outputs/vocab.json
     load_glove()           — maps vocab → 100d vectors (97.4% coverage)
     make_dataloaders()     — tokenize_and_pad (max_len=256), ReviewDataset, DataLoader
         │
         ▼
-  src/model.py
+  src.models.bilstm
     BiLSTMSentiment        — Embedding(15,924 × 100d) → Dropout → BiLSTM(256, 2, bidir)
                              → concat fwd+bwd hidden (512d) → Dropout → Linear(512→1)
         │
         ▼
-  src/train.py
+  src.training.bilstm
     train()                — Adam(lr=1e-3), BCEWithLogitsLoss, grad clip(5.0)
                              10 epochs, checkpoint by val F1
                              saves → outputs/bilstm.pt  (epoch 9, val F1 84.0%)
 
 Inference (one text):
-  src/inference.py
+  src.inference
     load_bilstm_model()    — load_checkpoint + load_vocab, cached in _bilstm_cache
     predict_bilstm()       — clean_text → tokenize_and_pad → model → sigmoid → dict
 ```
@@ -170,15 +197,15 @@ Training:
   train_df, val_df
         │
         ▼
-  src/train_bert.py
+  src.training.bert
     load_tokenizer()       — AutoTokenizer.from_pretrained("distilbert-base-uncased")
     make_bert_dataloaders()— encode_texts → BertReviewDataset → DataLoader
 
-  src/model_bert.py
+  src.models.bert
     DistilBERTSentiment    — DistilBertForSequenceClassification(num_labels=1)
                              + optional encoder freeze
 
-  src/train_bert.py
+  src.training.bert
     train_bert()           — Stage 1: freeze encoder, train head (head_epochs=10)
                              Stage 2: unfreeze last 2 layers, fine-tune (epochs=12)
                              Adam(head_lr=1e-4 / encoder_lr=2e-5), BCEWithLogitsLoss
@@ -186,7 +213,7 @@ Training:
                              saves → outputs/distilbert.pt  (epoch 12, val F1 87.8%)
 
 Inference (one text):
-  src/inference.py
+  src.inference
     load_distilbert_model()— load_pretrained_bert_bundle (model + tokenizer + checkpoint)
                              cached in _distilbert_cache
     predict_distilbert()   — clean_text → tokenizer → model → sigmoid → dict
@@ -228,7 +255,7 @@ Each model is loaded once per process and cached at module level:
 - `_bilstm_cache` — (BiLSTMSentiment, vocab dict, device)
 - `_distilbert_cache` — (DistilBERTSentiment, tokenizer, checkpoint dict, device)
 
-`clean_text()` from `src/preprocess.py` is called by every prediction path before the model sees the text.
+`clean_text()` from `src.data.preprocess` is called by every prediction path before the model sees the text.
 
 ---
 
@@ -259,7 +286,7 @@ Verified results (held-out test split, 1,159 reviews, seed=42):
 streamlit run app.py
 ```
 
-`app.py` is UI layout only. Model loading is delegated to `src/app_service.py`:
+`app.py` is UI layout only. Model loading is delegated to `src.app.service`:
 
 | Symbol | Purpose |
 |---|---|
@@ -269,7 +296,7 @@ streamlit run app.py
 | `warm_up_model(name)` | triggers cached loading for the selected model; returns `False` if unavailable |
 | `is_distilbert_available()` | returns `True` only when the checkpoint and `transformers` both load cleanly |
 
-`app.py` calls `predict_sentiment(text, model_name)` on classify and renders the result. It does not import `src.train`, `src.baseline`, or `src.parser` directly.
+`src/app_service.py` remains as a compatibility wrapper for older imports. `app.py` calls `predict_sentiment(text, model_name)` on classify and renders the result. It does not import training, evaluation, or raw-data parser modules directly.
 
 ---
 
@@ -296,8 +323,8 @@ All four trained artifacts live in `outputs/` and are committed to git. Generate
 
 | Field | Value |
 |---|---|
-| Produced by | `src/dataset.py → save_vocab()` |
-| Consumed by | `src/inference.py → load_bilstm_model()` |
+| Produced by | `src.tokenization.vocab → save_vocab()` |
+| Consumed by | `src.inference.loaders → load_bilstm_model()` |
 | Format | JSON mapping `token → int index` |
 | Contains | All tokens with `min_freq ≥ 2` in `train_df`, plus `<pad>` and `<unk>` |
 | Reproducible | Yes — fixed `seed=42`, deterministic vocab build from same train split |
@@ -307,8 +334,8 @@ All four trained artifacts live in `outputs/` and are committed to git. Generate
 
 | Field | Value |
 |---|---|
-| Produced by | `src/baseline.py → train_baseline()` |
-| Consumed by | `src/inference.py → load_baseline_model()` |
+| Produced by | `src.training.baseline → train_baseline()` |
+| Consumed by | `src.inference.loaders → load_baseline_model()` |
 | Format | `joblib`-serialised `sklearn.pipeline.Pipeline` (TfidfVectorizer + LogisticRegression) |
 | Security | `joblib.load` can execute arbitrary Python during deserialization. Only load from trusted sources. |
 | Caveats | Serialization format is scikit-learn version–sensitive. Upgrading sklearn may break loading. |
@@ -317,8 +344,8 @@ All four trained artifacts live in `outputs/` and are committed to git. Generate
 
 | Field | Value |
 |---|---|
-| Produced by | `src/train.py → train()` |
-| Consumed by | `src/inference.py → load_bilstm_model()`, `src/evaluate.py → run_evaluation()` |
+| Produced by | `src.training.bilstm → train()` |
+| Consumed by | `src.inference.loaders → load_bilstm_model()`, `src.evaluation.bilstm → run_evaluation()` |
 | Format | `torch.save` dict: `model_state`, `model_config`, `vocab_path`, `best_val_f1`, `best_epoch`, `history` |
 | Security | `torch.load(..., weights_only=False)` — can execute arbitrary Python from a malicious file. Only load from trusted sources. |
 | Contains | Full FP32 state dict for all layers (BiLSTM + embedding + head). Weights only; no optimizer state. |
@@ -328,8 +355,8 @@ All four trained artifacts live in `outputs/` and are committed to git. Generate
 
 | Field | Value |
 |---|---|
-| Produced by | `src/train_bert.py → train_bert()` via `src/checkpoint_bert.py → _save_checkpoint()` |
-| Consumed by | `src/inference.py → load_distilbert_model()`, `src/evaluate.py → check_distilbert_and_evaluate()` |
+| Produced by | `src.training.bert → train_bert()` via `src.checkpoint_bert → _save_checkpoint()` |
+| Consumed by | `src.inference.loaders → load_distilbert_model()`, `src.evaluation.bert → run_evaluation_distilbert_deploy()` |
 | Format | `torch.save` dict — see §7.3 |
 | Security | `torch.load(..., weights_only=False)` — same trust requirement as `bilstm.pt`. |
 | Self-contained | ⚠️ No. The frozen encoder weights (~66 MB) are NOT embedded. They are downloaded from HuggingFace Hub at inference time using `local_files_only=False`. With `local_files_only=True` the encoder must already be in the HF cache. |
@@ -434,8 +461,8 @@ The checkpoint embeds only the head weights (and fine-tuned encoder layers for `
 ## 8. Test Coverage
 
 ```
-pytest tests/ -q -m "not slow"   # 189 fast tests
-pytest tests/                     # + 5 slow integration tests
+pytest tests/ -q -m "not slow"   # 204 passed, 5 deselected on the latest verified run
+pytest tests/                     # full suite, including slow integration tests
 ```
 
 BERT-specific test files (`test_model_bert.py`, `test_train_bert.py`) use `pytest.importorskip("transformers")` and skip cleanly when the optional dependency is absent.
@@ -444,16 +471,16 @@ BERT-specific test files (`test_model_bert.py`, `test_train_bert.py`) use `pytes
 
 ## 9. Completed Boundaries (Refactor Series)
 
-The #30-#39 refactor series closed the highest-risk coupling issues without changing model behavior:
+The #30-#39 and #50-#59 refactor series closed the highest-risk coupling issues without changing model behavior:
 
 | Concern | Original state | Current state |
 |---|---|---|
 | **Artifact paths** | constants duplicated across modules | `src/config.py` owns artifact paths, model IDs, and prediction threshold |
-| **Inference dispatch** | `predict_sentiment()` used explicit `if/elif` routing | predictor protocol + model registry with `register_predictor()` |
-| **Evaluation side effects** | metric computation and file writing coupled | pure metric helper plus optional PNG/CSV writing |
-| **DistilBERT training** | tokenizer, dataset, checkpointing, and training in one large file | split across `dataset_bert.py`, `checkpoint_bert.py`, and `train_bert.py` |
-| **App loading policy** | Streamlit UI owned model loading and availability decisions | `src/app_service.py` owns cached loading and DistilBERT availability |
+| **Inference dispatch** | `predict_sentiment()` used explicit `if/elif` routing in a single file | `src.inference` package with loaders, predictors, registry, and API modules |
+| **Evaluation side effects** | metric computation, plots, errors, and runners lived together | `src.evaluation` package with metrics, plots, errors, BiLSTM, BERT, and runner modules |
+| **DistilBERT training** | tokenizer, dataset, checkpointing, and training in one large file | split across `src.tokenization.bert`, `src.checkpoint_bert`, and `src.training.bert` |
+| **App loading policy** | Streamlit UI owned model loading and availability decisions | `src.app.service` owns cached loading and DistilBERT availability |
 | **Artifact documentation** | binary artifacts documented informally | architecture doc includes artifact policy and DistilBERT model-card notes |
 | **Architecture tests** | tests focused mostly on function outputs | config contract and boundary tests protect module ownership |
 
-Remaining architectural debt is now about package organization, not immediate behavior. The proposed modular package refactor is tracked in `docs/issueBreakdown-phase3.md`.
+Compatibility wrappers remain for older imports and CLI commands: `src.evaluate`, `src.inference`, `src.baseline`, `src.train`, `src.train_bert`, `src.parser`, `src.preprocess`, `src.dataset`, `src.model`, and `src.app_service`.

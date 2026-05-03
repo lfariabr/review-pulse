@@ -34,30 +34,56 @@ review-pulse/
 
   src/
     config.py               # paths, model names, prediction threshold
-    app_service.py          # cached app loaders + model availability helpers
+    app/                    # Streamlit service helpers
+      service.py            # cached app loaders + model availability helpers
 
-    parser.py               # pseudo-XML parser -> DataFrame
-    preprocess.py           # label audit, cleaning, outlier removal, splits
-    features.py             # EDA helpers
+    data/                   # parser, preprocessing, EDA feature helpers
+      parser.py             # pseudo-XML parser -> DataFrame
+      preprocess.py         # label audit, cleaning, outlier removal, splits
+      features.py           # EDA helpers
 
-    dataset.py              # vocab, GloVe loader, BiLSTM Dataset/DataLoaders
-    dataset_bert.py         # DistilBERT tokenizer + Dataset/DataLoaders
+    tokenization/           # shared sequence/vocab + DistilBERT tokenization
+      vocab.py              # vocab save/load/build helpers
+      sequence.py           # BiLSTM Dataset/DataLoader/tokenize helpers
+      bert.py               # DistilBERT tokenizer + Dataset/DataLoader helpers
 
-    baseline.py             # TF-IDF + LogisticRegression train/evaluate/load
-    model.py                # BiLSTMSentiment nn.Module
-    model_bert.py           # DistilBERTSentiment HF wrapper
+    models/                 # model definitions
+      baseline.py           # TF-IDF + LogisticRegression pipeline factory
+      bilstm.py             # BiLSTMSentiment nn.Module
+      bert.py               # DistilBERTSentiment HF wrapper
 
-    train.py                # BiLSTM training loop + checkpointing
-    train_bert.py           # DistilBERT training stage orchestration
+    training/               # training orchestration and metric helpers
+      baseline.py           # TF-IDF baseline train/evaluate/load
+      bilstm.py             # BiLSTM training loop + checkpointing
+      bert.py               # DistilBERT training stage orchestration
+
     checkpoint_bert.py      # DistilBERT checkpoint save/load helpers
 
-    inference.py            # Predictor protocol, registry, predict_sentiment()
-    evaluate.py             # metrics, confusion matrix, error analysis
+    inference/              # single-text prediction package
+      loaders.py            # artifact/model loading and caches
+      predictors.py         # Predictor protocol + concrete predictors
+      registry.py           # predictor registry
+      api.py                # predict_sentiment() public API
+
+    evaluation/             # batch evaluation package
+      metrics.py            # metric computation
+      plots.py              # confusion matrix PNG
+      errors.py             # error-analysis CSV
+      bilstm.py             # BiLSTM + baseline evaluation runner
+      bert.py               # DistilBERT evaluation runner
+      runner.py             # CLI orchestration
+
+    inference.py            # compatibility wrapper for src.inference
+    evaluate.py             # CLI-compatible wrapper for src.evaluation
+
+    parser.py, preprocess.py, dataset.py,
+    baseline.py, model.py,
+    train.py, train_bert.py # compatibility wrappers for older imports/commands
 
     utils/
       samples.py            # Streamlit demo review samples
 
-  tests/                    # pytest suite: 189 fast + 5 slow integration tests
+  tests/                    # pytest suite
   notebooks/                # EDA notebook
   data/                     # local raw .review files
   outputs/                  # committed model artifacts + generated reports
@@ -129,22 +155,30 @@ If the file is absent, BiLSTM training proceeds with randomly initialized embedd
 Train the TF-IDF baseline:
 
 ```bash
-python -m src.baseline
+python -m src.training.baseline
 ```
 
 Train the BiLSTM:
 
 ```bash
-python -m src.train
+python -m src.training.bilstm
 ```
 
 Train DistilBERT:
 
 ```bash
+python -m src.training.bert
+```
+
+The legacy wrapper commands still work:
+
+```bash
+python -m src.baseline
+python -m src.train
 python -m src.train_bert
 ```
 
-`src.train_bert` uses Hugging Face `distilbert-base-uncased`, freezes the encoder for head training, then fine-tunes the last encoder layers. It writes the deployment artifact to `outputs/distilbert.pt`.
+`src.training.bert` uses Hugging Face `distilbert-base-uncased`, freezes the encoder for head training, then fine-tunes the last encoder layers. It writes the deployment artifact to `outputs/distilbert.pt`.
 
 ## Evaluate
 
@@ -175,7 +209,7 @@ The app lets the user:
 - classify sentiment;
 - inspect the confidence and raw prediction payload.
 
-Model loading and availability checks live in `src/app_service.py`; `app.py` stays focused on UI.
+Model loading and availability checks live in `src/app/service.py`; `src/app_service.py` remains as a compatibility wrapper. `app.py` stays focused on UI.
 
 ## Inference API
 
@@ -204,7 +238,7 @@ Available model names:
 - `"bilstm"`
 - `"distilbert"`
 
-Future models can be registered through `register_predictor()` in `src.inference`.
+Future models can be registered through `register_predictor()` in `src.inference`. The implementation is split across `src/inference/loaders.py`, `src/inference/predictors.py`, `src/inference/registry.py`, and `src/inference/api.py`.
 
 ## Run Tests
 
@@ -222,8 +256,8 @@ pytest tests/
 
 Current status:
 
-- Fast suite: 189 passed, 5 deselected
-- Full suite: 194 passed
+- Fast suite: 204 passed, 5 deselected
+- Full suite: run before final submission or release if an exact count is needed
 
 ## Documentation Map
 
@@ -234,6 +268,8 @@ Current status:
 - `docs/assessment-files/` - presentation outline, individual report template, demo test cases
 - `docs/releaseNotes/v1.0.0.md` - baseline + BiLSTM release
 - `docs/releaseNotes/v2.0.0.md` - DistilBERT release
+- `docs/releaseNotes/v2.1.0.md` - refactor track release
+- `docs/releaseNotes/v2.2.0.md` - modular package release
 
 ## Issue Creator (batch issue helper)
 
