@@ -19,7 +19,7 @@ from src.config import MODEL_DISTILBERT
 # Page config — must be the first Streamlit call
 # ---------------------------------------------------------------------------
 
-_ICON = Image.open("logo-icon.png")
+_ICON = Image.open("favicon.ico")
 
 st.set_page_config(
     page_title="ReviewPulse",
@@ -32,8 +32,8 @@ st.set_page_config(
 # Sidebar — logo + spacer
 # ---------------------------------------------------------------------------
 
-st.logo("logo-icon.png", link=None)   # icon in the top-left chrome
-st.sidebar.image("logo.jpeg", width='content')
+# st.logo("logo-icon.png", link=None)   # icon in the top-left chrome
+st.sidebar.image("logo.png", width='content')
 
 # ---------------------------------------------------------------------------
 # Header
