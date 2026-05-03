@@ -433,10 +433,10 @@ The checkpoint embeds only the head weights (and fine-tuned encoder layers for `
 
 | Failure | Cause | Observed error |
 |---|---|---|
-| `FileNotFoundError` | `outputs/distilbert.pt` does not exist (model not yet trained) | Raised by `load_pretrained_bert_bundle()`; caught by `app_service.load_distilbert()` |
+| `FileNotFoundError` | `outputs/distilbert.pt` does not exist (model not yet trained) | Raised by `load_pretrained_bert_bundle()`; caught by `src.app.service.load_distilbert()` |
 | `OSError` | HuggingFace Hub unreachable or cache miss with `local_files_only=True` | Raised by `AutoTokenizer.from_pretrained()` or `DistilBertForSequenceClassification.from_pretrained()` |
 | `RuntimeError` (corrupt checkpoint) | Checkpoint has unexpected or missing keys outside the allowlist | Raised by `load_pretrained_bert_bundle()` allowlist validation |
-| `ImportError` | `transformers` package not installed | Raised at import time; `app_service.load_distilbert()` catches and returns `None` |
+| `ImportError` | `transformers` package not installed | Raised at import time; `src.app.service.load_distilbert()` catches and returns `None` |
 | Low confidence on ambiguous reviews | Reviews near 3-star threshold may flip depending on phrasing | Expected — 3-star reviews were excluded from training data |
 | Domain shift | Checkpoint trained only on Books / DVD / Electronics / Kitchen | Performance may degrade on other product categories |
 
