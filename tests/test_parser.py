@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.parser import load_all_domains, load_unlabeled_domains, parse_review_file
+from src.data.parser import load_all_domains, load_unlabeled_domains, parse_review_file
 
 # Minimal pseudo-XML fixture — mirrors the real .review file format
 SAMPLE_VALID = """

@@ -47,7 +47,8 @@ def test_config_does_not_import_any_src_module():
         "src.config",
         forbidden=["src.inference", "src.train", "src.train_bert",
                    "src.evaluate", "src.baseline", "src.model",
-                   "src.dataset", "src.parser", "src.preprocess"],
+                   "src.dataset", "src.parser", "src.preprocess",
+                   "src.data.parser", "src.data.preprocess"],
     )
 
 
@@ -64,7 +65,7 @@ def test_inference_does_not_import_evaluate():
 
 
 def test_inference_does_not_import_parser():
-    _assert_no_imports("src.inference", forbidden=["src.parser"])
+    _assert_no_imports("src.inference", forbidden=["src.parser", "src.data.parser"])
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +91,6 @@ def test_app_service_does_not_import_evaluate():
 def test_app_service_does_not_import_parser():
     _assert_no_imports(
         "src.app.service",
-        forbidden=["src.parser"],
+        forbidden=["src.parser", "src.data.parser"],
         stub_streamlit=True,
     )

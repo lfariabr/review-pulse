@@ -177,8 +177,8 @@ def test_train_checkpoint_model_config_matches(tmp_path):
 def test_train_real_data_one_epoch():
     """One epoch on real data must complete without error and return val_f1 > 0."""
     import tempfile
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
+    from src.data.parser import load_all_domains
+    from src.data.preprocess import preprocess
     from src.dataset import save_vocab
 
     raw = load_all_domains()

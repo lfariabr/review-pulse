@@ -2,7 +2,7 @@
 
 import pandas as pd
 import pytest
-from src.preprocess import (
+from src.data.preprocess import (
     audit_labels,
     clean_text,
     drop_ambiguous,
