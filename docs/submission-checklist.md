@@ -22,9 +22,9 @@ Final checklist for group code submission. Use this document to verify all requi
 
 - [ ] **Streamlit App Deployed**
   - Deployed URL: _(to be confirmed)_
-  - Status: Running and accessible
+  - Status: Running locally; production deployment TBD
   - Instructions: See README.md → "Quick Start"
-  - Note: App requires `python src/app.py` or Streamlit cloud deployment
+  - Command: `streamlit run app.py` (from repository root)
 
 - [ ] **README Setup Instructions Verified**
   - File: `README.md`
@@ -42,17 +42,18 @@ Final checklist for group code submission. Use this document to verify all requi
 ## Model Artifacts
 
 - [ ] **Model Artifacts Archived**
-  - BiLSTM checkpoint: `outputs/bilstm.pt`
-  - DistilBERT checkpoint: `outputs/distilbert.pt` _(or hosted URL)_
-  - Vocabulary: `outputs/vocab.pkl`
+  - TF-IDF baseline: `outputs/baseline.joblib` (v2.1.0)
+  - BiLSTM checkpoint: `outputs/bilstm.pt` (v2.1.0)
+  - DistilBERT checkpoint: `outputs/distilbert.pt` (v2.1.0, integrated in app)
+  - Vocabulary: `outputs/vocab.json` (JSON format)
   - All artifacts tested and verified to load
-  - Checksums recorded (if applicable)
+  - Model hosting: Checkpoint CDN TBD (Issue #28)
 
 - [ ] **Model Reproducibility**
   - Training scripts: `src/training/bilstm.py`, `src/training/bert.py`
-  - Inference scripts: `src/inference.py`
-  - Evaluation scripts: `src/evaluate.py`
-  - Seed fixed for reproducibility
+  - Inference scripts: `src/inference/` package (Closes #55)
+  - Evaluation scripts: `src/evaluation/` package (Closes #56)
+  - Seed fixed for reproducibility (tests verified)
   - Results can be replicated from training
 
 ---
@@ -76,31 +77,45 @@ Final checklist for group code submission. Use this document to verify all requi
 ## Releases & Tags
 
 - [ ] **GitHub Release / Tag Created**
-  - Release/tag name: `v<X.Y.Z>` (e.g., `v1.0.0`)
+  - Latest: `v2.1.0` (current stable, includes DistilBERT)
+  - Next: `v2.2.0` (after modular refactor completion)
   - Release notes: Include key features, model performance, known limitations
-  - Artifacts attached (optional): Model checkpoints, test results
-  - Link: `https://github.com/lfariabr/review-pulse/releases/tag/v<X.Y.Z>`
+  - Link: `https://github.com/lfariabr/review-pulse/releases`
 
 ---
 
 ## Presentation & Evidence
 
 - [ ] **Presentation / Demo Video**
-  - Owner: _(group member name)_
+  - **Template:** See `docs/assessment-files/presentation-outline.md` (22 KB, slide-by-slide speaker notes)
+  - **Demo test cases:** See `docs/assessment-files/demo-test-cases.md` (10 acceptance test cases with model outputs)
+  - Owner: _(group lead)_
   - Link: _(video URL or upload location)_
-  - Duration: ~10–15 minutes
-  - Covers: Problem, solution, model performance, demo
+  - Duration: ~13–14 minutes total (Luis ~6.25 min, Victor ~3.5 min, Samiran ~3.75 min)
+  - Covers:
+    - [ ] Problem framing: sentiment analysis in e-commerce (Slide 2)
+    - [ ] Dataset: 8,000 Amazon reviews, 4 domains, 50/50 balance (Slide 3)
+    - [ ] Baseline & BiLSTM: architecture & training (Slides 4–7)
+    - [ ] DistilBERT: fine-tuning & performance gains (Slide 8)
+    - [ ] Error analysis: 10 acceptance test cases, failure modes (Slide 9)
+    - [ ] Live demo: Streamlit app, edge cases, confidence values (Slide 9 demo)
+    - [ ] Ethics: label noise, domain bias, calibration risk (Slide 10)
+    - [ ] Future work: RoBERTa, Platt scaling, LIME explainability (Slide 11)
   - Submitted to: _(Torrens LMS or specified platform)_
 
 - [ ] **Individual Report**
-  - Owner: _(student name)_
-  - Sections:
-    - [ ] Your specific role(s) in the project
-    - [ ] Key technical decisions you made
-    - [ ] Challenges faced and how you overcame them
-    - [ ] What you learned
-    - [ ] Code/commit evidence of your work (with links)
-  - Length: ~500–1000 words (per assignment brief)
+  - **Template:** See `docs/assessment-files/individual-report-template.md` (detailed template with examples)
+  - **Target length:** 250 words ±10% (225–275 words per report)
+  - **Slide assignments:**
+    - [ ] Luis Faria (A00187785): Slides 1, 4, 5, 6, 7, 12 (Title · Preprocessing · Architecture · Training · Results · Summary)
+    - [ ] Victor Meneses (A00179705): Slides 3, 8, 10 (Dataset · Transformers · Ethics & Limitations)
+    - [ ] Samiran Shrestha (A00106473): Slides 2, 9, 11 (Problem Statement · Live Demo · Future Work)
+  - **Requirements:**
+    - [ ] Student name & ID confirmed
+    - [ ] Contribution % agreed by team (must total 100%)
+    - [ ] Distinct ethical angle per report
+    - [ ] APA references included
+    - [ ] Speaker notes align with presentation outline
   - Submitted to: _(Torrens LMS or specified platform)_
 
 ---
@@ -108,10 +123,10 @@ Final checklist for group code submission. Use this document to verify all requi
 ## Academic Integrity
 
 - [ ] **Group Member Details**
-  - Member 1: _(name)_ — Student ID: _(ID)_
-  - Member 2: _(name)_ — Student ID: _(ID)_
-  - Member 3: _(name)_ — Student ID: _(ID)_
-  - _(Add/remove rows as needed)_
+  - [ ] Luis Faria — Student ID: A00187785
+  - [ ] Victor Meneses — Student ID: A00179705
+  - [ ] Samiran Shrestha — Student ID: A00106473
+  - **Contribution split:** _(TBD — confirm with team before final submission)_
 
 - [ ] **Academic Integrity Declaration**
   - [ ] All group members have reviewed the submission
@@ -155,14 +170,14 @@ Final checklist for group code submission. Use this document to verify all requi
 | Item | Status | Notes |
 |------|--------|-------|
 | Repository ready | ✓ | Public, accessible, clean history |
-| Tests passing | ✓ | All 203 tests pass |
+| Tests passing | ✓ | Fast suite: 193 tests (run `pytest tests/ -q -m "not slow"`) |
 | README complete | ✓ | Setup, usage, deployment documented |
-| Model artifacts | 🔌 | BiLSTM ready; DistilBERT status TBD |
-| Issues & PRs | ✓ | Phase 3 modular refactor complete; core issues merged |
-| Release created | 🕐 | Ready for post-implementation |
-| Presentation | 🕐 | Video owner TBD |
-| Individual reports | 🕐 | Owner(s) TBD |
-| Academic integrity | 🕐 | Group details & declaration TBD |
+| Model artifacts | ✓ | BiLSTM, TF-IDF, DistilBERT (v2.1.0) — all trained & packaged |
+| Issues & PRs | ✓ | Phase 3 refactor (#50–#59) complete; PRs #61–#66 merged |
+| Release created | ✓ | v2.1.0 tagged; v2.2.0 planned after refactor |
+| Presentation | 🕐 | Outline & test cases ready; video TBD |
+| Individual reports | 🕐 | Template ready (docs/assessment-files/); reports TBD |
+| Academic integrity | ✓ | Group members & IDs confirmed |
 | Backup retained | 🕐 | Location TBD |
 
 ---
@@ -170,14 +185,17 @@ Final checklist for group code submission. Use this document to verify all requi
 ## Notes & Known Limitations
 
 - **Model Performance:**
-  - BiLSTM: Baseline model, single-layer architecture
-  - DistilBERT: Stretch goal; performance gains vs. BiLSTM to be quantified
-  - Test set accuracy: _(to be confirmed from last full evaluation)_
-  - Generalization: Trained on Amazon reviews; may not transfer to other domains without fine-tuning
+  - BiLSTM: Single-layer architecture (v2.0.0), trained on 8,000 reviews
+  - DistilBERT: Hugging Face fine-tuned (v2.1.0), achieves 88.2% test accuracy
+  - TF-IDF baseline: Logistic regression (v2.1.0), achieves 81.9% F1
+  - Test set accuracy: 88.6% F1 (DistilBERT) vs. 80.3% F1 (BiLSTM) vs. 81.9% F1 (baseline)
+  - Generalization: Trained on Amazon reviews (4 domains); may not transfer to other review types without fine-tuning
 
 - **Deployment:**
-  - Streamlit app runs locally; production deployment (e.g., Streamlit Cloud, AWS) not yet configured
-  - Model loading uses local checkpoints; no CDN fallback yet (Issue #28)
+  - Streamlit app: `streamlit run app.py` (runs locally)
+  - Production deployment (Streamlit Cloud, AWS, etc.): Not yet configured
+  - Model loading: Local checkpoints from `outputs/`
+  - Model checkpoint hosting: CDN/webserver integration TBD (Issue #28)
 
 - **Future Work:**
   - Remove compatibility wrappers (Issue #59) once all consumers use new paths
