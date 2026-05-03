@@ -93,7 +93,7 @@ def load_baseline_model(path: Optional[Path] = None):
     """Load and cache the TF-IDF + LogReg pipeline."""
     global _baseline_cache
     if _baseline_cache is None:
-        from src.models.baseline import load_baseline
+        from src.training.baseline import load_baseline
         _baseline_cache = load_baseline(path or BASELINE_PATH)
     return _baseline_cache
 
@@ -122,7 +122,7 @@ def load_distilbert_model(checkpoint_path: Optional[Path] = None):
     """Load and cache the deployed Hugging Face DistilBERT bundle."""
     global _distilbert_cache
     if _distilbert_cache is None:
-        from src.train_bert import load_pretrained_bert_bundle
+        from src.training.bert import load_pretrained_bert_bundle
 
         _distilbert_cache = load_pretrained_bert_bundle(
             checkpoint_path or DEPLOY_CHECKPOINT_PATH

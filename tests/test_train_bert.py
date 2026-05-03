@@ -1,6 +1,6 @@
 # .venv/bin/pytest tests/test_train_bert.py -v
 
-"""Tests for src/train_bert.py — Hugging Face DistilBERT training loop."""
+"""Tests for src.training.bert — Hugging Face DistilBERT training loop."""
 
 import pytest
 pytest.importorskip("transformers")
@@ -13,7 +13,7 @@ import src.models.bert as model_bert_module
 import src.tokenization.bert as bert_tokenization_module
 from src.models.bert import DistilBERTSentiment
 from tiny_tokenizer import TinyTokenizer
-from src.train_bert import (
+from src.training.bert import (
     evaluate_epoch_bert,
     load_pretrained_bert_bundle,
     load_tokenizer,
@@ -21,7 +21,7 @@ from src.train_bert import (
     train_bert,
     train_one_epoch_bert,
 )
-import src.train_bert as train_bert_module
+import src.training.bert as train_bert_module
 
 TEXTS_POS = [
     "great product love it highly recommend",
@@ -93,6 +93,15 @@ def test_dataset_bert_wrapper_exports_tokenization_api():
     assert compat.make_bert_dataloaders is bert_tokenization_module.make_bert_dataloaders
     assert compat.make_bert_test_loader is bert_tokenization_module.make_bert_test_loader
     assert compat.resolve_device is bert_tokenization_module.resolve_device
+
+
+def test_train_bert_wrapper_exports_training_api():
+    import src.train_bert as compat
+
+    assert compat.train_one_epoch_bert is train_one_epoch_bert
+    assert compat.evaluate_epoch_bert is evaluate_epoch_bert
+    assert compat.train_bert is train_bert
+    assert compat.load_pretrained_bert_bundle is load_pretrained_bert_bundle
 
 
 def _fixtures(monkeypatch):

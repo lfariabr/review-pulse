@@ -1,12 +1,12 @@
 # .venv/bin/pytest tests/test_train.py -v
 
-"""Tests for src/train.py — training loop."""
+"""Tests for src.training.bilstm — training loop."""
 
 import torch
 import pandas as pd
 import pytest
 
-from src.train import train_one_epoch, evaluate_epoch, train
+from src.training.bilstm import train_one_epoch, evaluate_epoch, train
 from src.model import BiLSTMSentiment
 from src.dataset import build_vocab, make_dataloaders
 
@@ -50,6 +50,14 @@ def _fixtures():
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     return model, train_loader, val_loader, optimizer, criterion
+
+
+def test_train_wrapper_exports_training_api():
+    import src.train as compat
+
+    assert compat.train_one_epoch is train_one_epoch
+    assert compat.evaluate_epoch is evaluate_epoch
+    assert compat.train is train
 
 
 # ---------------------------------------------------------------------------
