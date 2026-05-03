@@ -84,26 +84,6 @@ def _patch_hf(monkeypatch):
     )
 
 
-def test_dataset_bert_wrapper_exports_tokenization_api():
-    import src.dataset_bert as compat
-
-    assert compat.BertReviewDataset is bert_tokenization_module.BertReviewDataset
-    assert compat.encode_texts is bert_tokenization_module.encode_texts
-    assert compat.load_tokenizer is bert_tokenization_module.load_tokenizer
-    assert compat.make_bert_dataloaders is bert_tokenization_module.make_bert_dataloaders
-    assert compat.make_bert_test_loader is bert_tokenization_module.make_bert_test_loader
-    assert compat.resolve_device is bert_tokenization_module.resolve_device
-
-
-def test_train_bert_wrapper_exports_training_api():
-    import src.train_bert as compat
-
-    assert compat.train_one_epoch_bert is train_one_epoch_bert
-    assert compat.evaluate_epoch_bert is evaluate_epoch_bert
-    assert compat.train_bert is train_bert
-    assert compat.load_pretrained_bert_bundle is load_pretrained_bert_bundle
-
-
 def _fixtures(monkeypatch):
     _patch_hf(monkeypatch)
     df = _small_df()

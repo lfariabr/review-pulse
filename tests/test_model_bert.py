@@ -59,16 +59,6 @@ def test_model_is_nn_module(monkeypatch):
     assert isinstance(_model(monkeypatch), torch.nn.Module)
 
 
-def test_legacy_model_bert_wrapper_exports_same_classes():
-    from src.model_bert import (
-        DistilBERTSentiment as LegacyDistilBERTSentiment,
-        PretrainedDistilBERTSentiment as LegacyPretrainedDistilBERTSentiment,
-    )
-
-    assert LegacyDistilBERTSentiment is DistilBERTSentiment
-    assert LegacyPretrainedDistilBERTSentiment is PretrainedDistilBERTSentiment
-
-
 def test_model_uses_hugging_face_distilbert_classifier(monkeypatch):
     m = _model(monkeypatch)
     assert isinstance(m.model, DistilBertForSequenceClassification)

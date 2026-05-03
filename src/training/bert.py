@@ -398,8 +398,8 @@ def main() -> None:
     """Train DistilBERT from the CLI."""
     start_time = time.perf_counter()
 
-    from src.parser import load_all_domains
-    from src.preprocess import preprocess
+    from src.data.parser import load_all_domains
+    from src.data.preprocess import preprocess
 
     raw = load_all_domains()
     train_df, val_df, _ = preprocess(raw)

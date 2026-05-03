@@ -6,7 +6,7 @@ from typing import Optional, Protocol, runtime_checkable
 import torch
 
 from src.config import MODEL_BASELINE, MODEL_BILSTM, MODEL_DISTILBERT, PRED_THRESHOLD
-from src.preprocess import clean_text
+from src.data.preprocess import clean_text
 
 from .loaders import load_baseline_model, load_bilstm_model, load_distilbert_model
 

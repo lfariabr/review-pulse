@@ -45,12 +45,6 @@ def test_model_is_nn_module():
     assert isinstance(_model(), torch.nn.Module)
 
 
-def test_legacy_model_wrapper_exports_same_class():
-    from src.model import BiLSTMSentiment as LegacyBiLSTMSentiment
-
-    assert LegacyBiLSTMSentiment is BiLSTMSentiment
-
-
 def test_model_has_embedding():
     m = _model()
     assert hasattr(m, "embedding")

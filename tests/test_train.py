@@ -7,8 +7,9 @@ import pandas as pd
 import pytest
 
 from src.training.bilstm import train_one_epoch, evaluate_epoch, train
-from src.model import BiLSTMSentiment
-from src.dataset import build_vocab, make_dataloaders
+from src.models.bilstm import BiLSTMSentiment
+from src.tokenization.sequence import make_dataloaders
+from src.tokenization.vocab import build_vocab
 
 # ---------------------------------------------------------------------------
 # Minimal fixtures — tiny vocab and dataset so tests run fast on CPU
@@ -50,14 +51,6 @@ def _fixtures():
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     return model, train_loader, val_loader, optimizer, criterion
-
-
-def test_train_wrapper_exports_training_api():
-    import src.train as compat
-
-    assert compat.train_one_epoch is train_one_epoch
-    assert compat.evaluate_epoch is evaluate_epoch
-    assert compat.train is train
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +172,7 @@ def test_train_real_data_one_epoch():
     import tempfile
     from src.data.parser import load_all_domains
     from src.data.preprocess import preprocess
-    from src.dataset import save_vocab
+    from src.tokenization.vocab import save_vocab
 
     raw = load_all_domains()
     train_df, val_df, _ = preprocess(raw)

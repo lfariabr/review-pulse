@@ -51,17 +51,6 @@ def test_vocab_contains_pad_and_unk():
     assert UNK_TOKEN in vocab
 
 
-def test_dataset_wrapper_exports_tokenization_api():
-    from src import dataset
-
-    assert dataset.build_vocab is build_vocab
-    assert dataset.save_vocab is save_vocab
-    assert dataset.load_vocab is load_vocab
-    assert dataset.tokenize_and_pad is tokenize_and_pad
-    assert dataset.ReviewDataset is ReviewDataset
-    assert dataset.make_dataloaders is make_dataloaders
-
-
 def test_pad_is_index_zero():
     vocab = build_vocab(TRAIN_TEXTS)
     assert vocab[PAD_TOKEN] == 0

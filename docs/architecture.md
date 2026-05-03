@@ -42,16 +42,6 @@ review-pulse/
 │   │   ├── bilstm.py       ← BiLSTM + baseline evaluation runner
 │   │   ├── bert.py         ← DistilBERT evaluation runner
 │   │   └── runner.py       ← CLI orchestration
-│   ├── parser.py           ← compatibility wrapper for src.data.parser
-│   ├── preprocess.py       ← compatibility wrapper for src.data.preprocess
-│   ├── dataset.py          ← compatibility wrapper for tokenization helpers
-│   ├── baseline.py         ← compatibility wrapper for src.training.baseline
-│   ├── model.py            ← compatibility wrapper for src.models.bilstm
-│   ├── train.py            ← compatibility wrapper for src.training.bilstm
-│   ├── train_bert.py       ← compatibility wrapper for src.training.bert
-│   ├── app_service.py      ← compatibility wrapper for src.app.service
-│   ├── inference.py        ← compatibility wrapper for src.inference
-│   ├── evaluate.py         ← CLI-compatible wrapper for src.evaluation
 │   └── utils/
 │       └── samples.py      ← demo review samples for Streamlit app
 ├── outputs/                ← committed model artifacts + generated evaluation reports (PNG/CSV gitignored)
@@ -77,9 +67,9 @@ The codebase has four roles that must stay separate. Conflating them is the prim
 
 | Role | What it does | Entrypoint |
 |---|---|---|
-| **Training** | reads raw data, fits a model, writes an artifact to `outputs/` | `python -m src.baseline`, `python -m src.train`, `python -m src.train_bert` |
+| **Training** | reads raw data, fits a model, writes an artifact to `outputs/` | `python -m src.training.baseline`, `python -m src.training.bilstm`, `python -m src.training.bert` |
 | **Inference** | loads a cached artifact, cleans one text string, returns a prediction dict | `src.inference.predict_sentiment(text, model_name)` |
-| **Evaluation** | loads artifacts + held-out data, computes batch metrics, writes reports | `python -m src.evaluate` |
+| **Evaluation** | loads artifacts + held-out data, computes batch metrics, writes reports | `python -m src.evaluation.runner` |
 | **App** | UI only — calls inference, renders results | `streamlit run app.py` |
 
 The app **never** trains. Evaluation **never** writes model artifacts. Inference **never** reads raw data.
@@ -262,7 +252,7 @@ Each model is loaded once per process and cached at module level:
 ## 5. Evaluation
 
 ```
-python -m src.evaluate
+python -m src.evaluation.runner
 ```
 
 Runs sequentially:
@@ -296,7 +286,7 @@ streamlit run app.py
 | `warm_up_model(name)` | triggers cached loading for the selected model; returns `False` if unavailable |
 | `is_distilbert_available()` | returns `True` only when the checkpoint and `transformers` both load cleanly |
 
-`src/app_service.py` remains as a compatibility wrapper for older imports. `app.py` calls `predict_sentiment(text, model_name)` on classify and renders the result. It does not import training, evaluation, or raw-data parser modules directly.
+`app.py` calls `predict_sentiment(text, model_name)` on classify and renders the result. It does not import training, evaluation, or raw-data parser modules directly.
 
 ---
 
@@ -443,10 +433,10 @@ The checkpoint embeds only the head weights (and fine-tuned encoder layers for `
 
 | Failure | Cause | Observed error |
 |---|---|---|
-| `FileNotFoundError` | `outputs/distilbert.pt` does not exist (model not yet trained) | Raised by `load_pretrained_bert_bundle()`; caught by `app_service.load_distilbert()` |
+| `FileNotFoundError` | `outputs/distilbert.pt` does not exist (model not yet trained) | Raised by `load_pretrained_bert_bundle()`; caught by `src.app.service.load_distilbert()` |
 | `OSError` | HuggingFace Hub unreachable or cache miss with `local_files_only=True` | Raised by `AutoTokenizer.from_pretrained()` or `DistilBertForSequenceClassification.from_pretrained()` |
 | `RuntimeError` (corrupt checkpoint) | Checkpoint has unexpected or missing keys outside the allowlist | Raised by `load_pretrained_bert_bundle()` allowlist validation |
-| `ImportError` | `transformers` package not installed | Raised at import time; `app_service.load_distilbert()` catches and returns `None` |
+| `ImportError` | `transformers` package not installed | Raised at import time; `src.app.service.load_distilbert()` catches and returns `None` |
 | Low confidence on ambiguous reviews | Reviews near 3-star threshold may flip depending on phrasing | Expected — 3-star reviews were excluded from training data |
 | Domain shift | Checkpoint trained only on Books / DVD / Electronics / Kitchen | Performance may degrade on other product categories |
 
@@ -461,7 +451,7 @@ The checkpoint embeds only the head weights (and fine-tuned encoder layers for `
 ## 8. Test Coverage
 
 ```
-pytest tests/ -q -m "not slow"   # 204 passed, 5 deselected on the latest verified run
+pytest tests/ -q -m "not slow"   # 194 passed, 5 deselected on the latest verified run
 pytest tests/                     # full suite, including slow integration tests
 ```
 
@@ -483,4 +473,4 @@ The #30-#39 and #50-#59 refactor series closed the highest-risk coupling issues 
 | **Artifact documentation** | binary artifacts documented informally | architecture doc includes artifact policy and DistilBERT model-card notes |
 | **Architecture tests** | tests focused mostly on function outputs | config contract and boundary tests protect module ownership |
 
-Compatibility wrappers remain for older imports and CLI commands: `src.evaluate`, `src.inference`, `src.baseline`, `src.train`, `src.train_bert`, `src.parser`, `src.preprocess`, `src.dataset`, `src.model`, and `src.app_service`.
+Legacy flat-module compatibility wrappers were removed in Issue #59 after tests and docs moved to canonical package paths. Public package APIs remain available through package `__init__.py` files, including `src.inference` and `src.evaluation`.

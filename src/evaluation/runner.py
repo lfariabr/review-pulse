@@ -25,3 +25,7 @@ def main() -> None:
     """Run the CLI-compatible evaluation flow."""
     run_evaluation()
     check_distilbert_and_evaluate()
+
+
+if __name__ == "__main__":
+    main()

@@ -45,9 +45,8 @@ def _assert_no_imports(module: str, forbidden: list[str], stub_streamlit: bool =
 def test_config_does_not_import_any_src_module():
     _assert_no_imports(
         "src.config",
-        forbidden=["src.inference", "src.train", "src.train_bert",
-                   "src.evaluate", "src.baseline", "src.model",
-                   "src.dataset", "src.parser", "src.preprocess",
+        forbidden=["src.inference", "src.training", "src.evaluation",
+                   "src.models", "src.tokenization",
                    "src.data.parser", "src.data.preprocess"],
     )
 
@@ -57,11 +56,11 @@ def test_config_does_not_import_any_src_module():
 # ---------------------------------------------------------------------------
 
 def test_inference_does_not_import_train():
-    _assert_no_imports("src.inference", forbidden=["src.train", "src.train_bert"])
+    _assert_no_imports("src.inference", forbidden=["src.training"])
 
 
 def test_inference_does_not_import_evaluate():
-    _assert_no_imports("src.inference", forbidden=["src.evaluate"])
+    _assert_no_imports("src.inference", forbidden=["src.evaluation"])
 
 
 def test_inference_does_not_import_parser():
@@ -75,7 +74,7 @@ def test_inference_does_not_import_parser():
 def test_app_service_does_not_import_train():
     _assert_no_imports(
         "src.app.service",
-        forbidden=["src.train", "src.train_bert"],
+        forbidden=["src.training"],
         stub_streamlit=True,
     )
 
@@ -83,7 +82,7 @@ def test_app_service_does_not_import_train():
 def test_app_service_does_not_import_evaluate():
     _assert_no_imports(
         "src.app.service",
-        forbidden=["src.evaluate"],
+        forbidden=["src.evaluation"],
         stub_streamlit=True,
     )
 
