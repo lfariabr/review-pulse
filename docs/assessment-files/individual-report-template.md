@@ -108,17 +108,17 @@ I estimate my contribution at 25%. Luis contributed 60% as the primary v1.0.0 im
 
 ### Draft Report (~250 words) — suggested content
 
-My primary contribution to ReviewPulse was framing the problem for the audience, running the live demo, and presenting the future work roadmap, as well as contributing to [any additional work: research, documentation, team coordination].
+My contribution to the ReviewPulse project focused on problem framing, live demonstration, and future improvement planning. I contributed approximately 25% to the overall project.
 
-I presented slides 2, 9, and 11. Slide 2 establishes the commercial motivation for sentiment analysis — product feedback loops, brand monitoring, recommendation systems — and articulates the core challenge: real reviews are messy. They vary in length from two words to over 800, span multiple domains, use negation ("not bad at all"), and employ sarcasm ("oh great, another broken product"). I framed our goal as building two systems and letting the data decide which one wins.
+At the beginning of the project, I helped define the main problem by explaining why sentiment analysis is useful in a commercial setting. Customer reviews contain important feedback that businesses can use to improve products, monitor brand reputation, and support decision-making. I also helped identify key challenges in review classification, including different writing styles, varying review lengths, negation, sarcasm, and domain differences.
 
-Slide 9 is the live demo. I ran the Streamlit app live, demonstrating a clear positive, a clear negative, the negation failure mode, and the sarcasm case where both v1 models sit near 50% confidence — which is honest uncertainty, not a hard error. I also demonstrated the DistilBERT option, which handles the negation case more confidently due to its contextual pre-training. I showed the Generate button to load a random acceptance test case.
+I was also responsible for preparing and delivering the live demonstration of the ReviewPulse application. During the demo, I explained how users can enter review text, select a model, and receive a positive or negative sentiment prediction. This helped show how the system works in a practical real-world scenario.
 
-Slide 11 presents the next steps after DistilBERT (v2.0.0): RoBERTa for further accuracy gains; Platt scaling for confidence calibration; additional training domains; and LIME for explainability.
+In addition, I contributed to the future work section by identifying possible improvements such as DistilBERT, RoBERTa, confidence calibration, expanding to more domains, and adding explainability methods such as LIME or attention visualisation. These improvements would make the system more accurate, reliable, and easier to understand.
 
-An important ethical consideration I focused on is that binary sentiment classification is reductive. Real reviews express nuanced opinions — mixed, hedged, or ironic — that a positive/negative label cannot capture. Deploying a binary classifier in high-stakes contexts risks suppressing legitimate nuance.
+This was my first trimester in MIT, so I was still developing my confidence with technical machine learning projects. Luis and Victor had more experience than me, and working with them helped me learn things I would not have understood as clearly on my own. Luis led the team strongly from the technical side, and both Luis and Victor supported me by explaining concepts, sharing their experience, and helping me understand how the system worked.
 
-I estimate my contribution at 15% covering the problem framing, live demo delivery, and future work. Luis contributed 60% as the primary v1.0.0 implementer. Victor contributed 25% covering the DistilBERT implementation, dataset analysis, error analysis, and ethics.
+I am thankful for their guidance because it helped me contribute more confidently to the problem framing, live demo, and future work sections. Overall, my role supported the project by explaining the problem, demonstrating the system, and outlining future improvements.
 
 ### APA References
 
