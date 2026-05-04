@@ -108,17 +108,19 @@ I estimate my contribution at 25%. Luis contributed 60% as the primary v1.0.0 im
 
 ### Draft Report (~250 words) — suggested content
 
-My contribution to the ReviewPulse project focused on problem framing, live demonstration, and future improvement planning. I contributed approximately 25% to the overall project.
+My role on the ReviewPulse project was on the problem framing, demonstration of the system, and identification of the ways the project might improve in the future. I helped with an approximate 25 percent contribution to the entire project.
 
-At the beginning of the project, I helped define the main problem by explaining why sentiment analysis is useful in a commercial setting. Customer reviews contain important feedback that businesses can use to improve products, monitor brand reputation, and support decision-making. I also helped identify key challenges in review classification, including different writing styles, varying review lengths, negation, sarcasm, and domain differences.
+At the beginning, I was engaged in knowing and defining the problem of sentiment analysis. This involved determining how machine learning can be applied in categorising customer reviews as good or bad and the significance of machine learning in a business environment. Customer feedback is important in enhancing the product, monitoring the brand, and making business decisions. It was also in this task that I contributed to the realisation of challenges faced in this task, including the difference in writing style, length of review, differences in domains, the occurrence of complex features of language, such as negation and sarcasm, which make classification a difficult task.
 
-I was also responsible for preparing and delivering the live demonstration of the ReviewPulse application. During the demo, I explained how users can enter review text, select a model, and receive a positive or negative sentiment prediction. This helped show how the system works in a practical real-world scenario.
+I also helped in proving the functionality of the system. This entailed presenting how the ReviewPulse application works by taking user input and giving predictions on the sentiments. It is through this that I was able to gain a deeper insight into the application of machine learning models to work towards practical systems and how results can be interpreted.
 
-In addition, I contributed to the future work section by identifying possible improvements such as DistilBERT, RoBERTa, confidence calibration, expanding to more domains, and adding explainability methods such as LIME or attention visualisation. These improvements would make the system more accurate, reliable, and easier to understand.
+Moreover, I helped the future development of the project since I found the areas that needed to be improved. These involved more advanced models such as DistilBERT and RoBERTa which are more adept at filling in context in text. I also had made suggestions which included some of these improvements, improving dataset by increasing the number of domains, performing better confidence calibration, and adding explainability techniques like LIME or attention visualisation. These enhancements would improve the accuracy, reliability, and transparency of the system.
 
-This was my first trimester in MIT, so I was still developing my confidence with technical machine learning projects. Luis and Victor had more experience than me, and working with them helped me learn things I would not have understood as clearly on my own. Luis led the team strongly from the technical side, and both Luis and Victor supported me by explaining concepts, sharing their experience, and helping me understand how the system worked.
+It was my first trimester enrolled in the MIT program and, I was still in the process of building my technical knowledge of machine learning concepts. Luis and Victor had some experience, and working with them offered many learning opportunities. Luis led the team greatly from technical development of the system and both Luis and Victor assisted me in understanding concepts and sharing their learning. They were able to guide me towards a better comprehension of the overall system and enabled me to contribute in a more effective manner.
 
-I am thankful for their guidance because it helped me contribute more confidently to the problem framing, live demo, and future work sections. Overall, my role supported the project by explaining the problem, demonstrating the system, and outlining future improvements.
+The project helped me better understand the concept of sentiment analysis, comparing different models, and issues regarding the usage of machine learning to real-world problems. By and large, my input was useful to assist the project, help define the problem, help contribute to the understanding of the system, and help identify meaningful future improvements.
+<img width="468" height="542" alt="image" src="https://github.com/user-attachments/assets/2aa0a261-211b-4a74-9698-f52c64886ed4" />
+
 
 ### APA References
 
