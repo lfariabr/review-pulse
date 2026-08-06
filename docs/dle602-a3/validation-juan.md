@@ -1,15 +1,21 @@
-from pathlib import Path
-
-content = r"""# ReviewPulse v3.0 — Manual UI Validation Record
+# ReviewPulse v3.0 — Manual UI Validation Record
 
 ## 1. Validation Information
 
 - **Validator:** Juan Sebastian Martinez Contreras
-- **Validation date: 8/26 
+- **Validation date:** 2026-08-04
 - **Application URL:** https://review-pulse.streamlit.app/ReviewPulse_v3_0_0
 - **Browser and version:** Chrome V.150.0.8
-- **Validation environment:** Deployed Streamlit application
-- **Overall result:** Pass / Pass with observations / Fail / Blocked
+- **Validation environment:** Deployed Streamlit application, authenticated session
+- **Overall result:** Fail — three cases require triage; two stale-state checks are blocked pending reproducible detail
+- **Evidence source:** Companion Word document with screenshots, supplied by the validator through Torrens SharePoint
+- **Repository evidence status:** PDF export and selected report captures are pending before the final `v3.0.0` tag
+
+This record preserves the validator's observed strings and behaviours. An incorrect model
+prediction is treated as a model-quality observation when the interface still satisfies its
+acceptance criteria. An observed interface behaviour that contradicts an expected result is
+recorded as a failure. Anonymous public access was not part of Juan's authenticated validation
+session and remains a separate pending release gate in `docs/submission-checklist.md`.
 
 ---
 
@@ -71,17 +77,17 @@ The validation covers:
 | Test ID | Test name | Status | Evidence ID | Notes |
 |---|---|---|---|---|
 | UI-01 | Application and model availability | Pass | EV-01 | |
-| UI-02 | Six-model inference smoke test | Pass |EV-02 | |
-| UI-03 | Mixed-polarity multi-aspect prediction | Pass with observation | 	EV-03| |
+| UI-02 | Six-model inference smoke test | Pass | EV-02 | |
+| UI-03 | Mixed-polarity multi-aspect prediction | Pass with observation | EV-03 | Model-quality observation; separate aspect results rendered |
 | UI-04 | Aspect order and duplicate handling | Pass | EV-04 | |
-| UI-05 | Sample generator | Pass |EV-05 | |
-| UI-06 | Model switching and stale-result prevention | Pass |EV-06 | |
-| UI-07 | ATAE-LSTM attention evidence | Pass with observation |EV-07 | |
-| UI-08 | DistilBERT attribution evidence | Pass with observations  |EV-08 | |
-| UI-09 | Unsupported evidence handling | Pass |EV-09 | |
-| UI-10 | Empty review validation | Pass |EV-010 | |
-| UI-11 | Empty/invalid aspect validation | Pass | EV-011 | |
-| UI-12 | ReviewPulse v2/v3 compatibility | Pass | EV-12 | |
+| UI-05 | Sample generator | Pass | EV-05 | |
+| UI-06 | Model switching and stale-result prevention | Blocked | EV-06 | Exact stale field and triggering model transition were not recorded |
+| UI-07 | ATAE-LSTM attention evidence | Fail | EV-07 | Aspect change and alignment require triage |
+| UI-08 | DistilBERT attribution evidence | Fail | EV-08 | Aspect change and alignment require triage |
+| UI-09 | Unsupported evidence handling | Pass | EV-09 | |
+| UI-10 | Empty review validation | Fail | EV-10 | Misclassified message and stale output observed |
+| UI-11 | Empty/invalid aspect validation | Pass with observation | EV-11 | Validation content shown with an incorrect model-unavailable prefix |
+| UI-12 | ReviewPulse v2/v3 compatibility | Blocked | EV-12 | Exact leaked state and navigation direction were not recorded |
 
 Allowed status values:
 
@@ -94,7 +100,7 @@ Allowed status values:
 
 ---
 
-# 5. Detailed Test Cases
+## 5. Detailed Test Cases
 
 ## UI-01 — Application and Model Availability
 
@@ -179,12 +185,12 @@ For each model:
 
 | Model | Prediction returned | Predicted label | Confidence | Status | Evidence ID |
 |---|---:|---|---:|---|---|
-| TF-IDF |Positive| Positive | 88.3%| Pass | EV-02A |
-| Target LSTM | Positive | Positive |88.8% |Pass | EV-02B |
-| Target GRU |Positive | Positive | 89.5% | Pass |  EV-02C |
-| TextCNN |Positive | Positive | 92.0% | Pass |EV-02D |
-| ATAE-LSTM |Positive | Positive | 81.3% | Pass | EV-02E |
-| DistilBERT |Positive | Positive | 97.7% | Pass | EV-02F |
+| TF-IDF | Yes | Positive | 88.3% | Pass | EV-02A |
+| Target LSTM | Yes | Positive | 88.8% | Pass | EV-02B |
+| Target GRU | Yes | Positive | 89.5% | Pass | EV-02C |
+| TextCNN | Yes | Positive | 92.0% | Pass | EV-02D |
+| ATAE-LSTM | Yes | Positive | 81.3% | Pass | EV-02E |
+| DistilBERT | Yes | Positive | 97.7% | Pass | EV-02F |
 
 ### Notes
 
@@ -233,16 +239,15 @@ This test will be run in models:
 
 | Model | Food prediction | Service prediction | Two separate results | Status | Evidence ID |
 |---|---|---|---:|---|---|
-| ATAE-LSTM | Positive | Positive | Yes | Pass with observations | EV-03A |
-| DistilBERT | Negative | Negative | Yest | Pass with observations  | EV-03B |
+| ATAE-LSTM | Positive | Positive | Yes | Pass with observation | EV-03A |
+| DistilBERT | Negative | Negative | Yes | Pass with observation | EV-03B |
 
 ### Observations
 
-- **Both models distinguish each aspect separately** 
-
-- **Both models are wrong in one aspect, the correct answer is food: positive and service: negative** 
-
-- **No unexpected errors** 
+- The interface rendered a separate result for each supplied aspect.
+- Both models returned the same label for both aspects and therefore missed one gold label:
+  `food` is positive and `service` is negative.
+- This is a model-quality observation rather than a UI acceptance failure.
 
 ---
 
@@ -371,12 +376,19 @@ Verify that changing models updates the result correctly and does not display st
 - **Correct model shown:** Yes
 - **Results refreshed:** Yes
 - **Stale output observed:** Yes
+- **Exact stale field/value:** Not recorded
+- **Source and destination model:** The TF-IDF → ATAE-LSTM → DistilBERT sequence was exercised, but the transition associated with the observation was not recorded
+- **Triggering transition:** Not recorded
 - **Evidence view refreshed/removed correctly:** Yes
 - **Errors:** None unexpected
 
 ### Status
 
-Pass 
+Blocked
+
+The validator marked stale output as observed but did not identify the stale field or value, the
+source and destination model, or the triggering transition. The finding cannot be reproduced
+from this record and remains blocked pending a targeted retest.
 
 ### Evidence
 
@@ -425,12 +437,18 @@ Verify that ATAE-LSTM produces a readable, aspect-specific attention evidence vi
 - **Evidence changed by aspect:** No
 - **Token alignment acceptable:** No
 - **Punctuation handled correctly:** No
+- **Causal explanation claimed by the interface:** No — the displayed caption states that token
+  scores are indicative evidence, not model reasoning or a causal explanation
 - **Errors:** 
 
 ### Status
 
-Pass with observation
-For the negative aspect there is not enough attention and the prediction is wrong
+Fail
+
+The validator recorded no aspect-specific visual change and unacceptable token/punctuation
+alignment. The screenshots require technical review to determine whether this is a rendering
+defect or a misunderstanding of the evidence view; the incorrect prediction alone would be a
+model-quality observation.
 
 ### Evidence
 
@@ -482,8 +500,11 @@ Verify that DistilBERT produces a readable, aspect-specific attribution view.
 
 ### Status
 
-Pass with observation
-For the Positive aspect there is not enough attention for the positive word and the prediction is wrong
+Fail
+
+The validator recorded no aspect-specific visual change and unacceptable token alignment. The
+screenshots require technical review to distinguish a rendering defect from a misunderstanding
+of the attribution view; the incorrect prediction alone would not make the UI test fail.
 
 ### Evidence
 
@@ -573,7 +594,10 @@ Verify controlled handling of an empty or whitespace-only review.
 
 ### Status
 
-Pass
+Fail
+
+The page remained stable, but the message classified invalid input as model unavailability and a
+stale result remained visible. Both observations contradict this case's acceptance criteria.
 
 ### Evidence
 
@@ -616,10 +640,17 @@ Verify controlled handling of missing or unusable aspect input.
 
 | Aspect input | Expected | Actual | Status |
 |---|---|---|---|
-| Empty | Validation message | The selected model is unavailable: Provide at least one non-empty aspect | Pass|
-| Spaces only | Validation message |The selected model is unavailable: Provide at least one non-empty aspect |Pass |
-| `,,,` | Validation message |The selected model is unavailable: Provide at least one non-empty aspect | Pass|
-| `food, , ,` | One `food` result | Food as valid aspect  | Pass |
+| Empty | Validation message | The selected model is unavailable: Provide at least one non-empty aspect | Pass with observation |
+| Spaces only | Validation message | The selected model is unavailable: Provide at least one non-empty aspect | Pass with observation |
+| `,,,` | Validation message | The selected model is unavailable: Provide at least one non-empty aspect | Pass with observation |
+| `food, , ,` | One `food` result | `food` treated as the valid aspect | Pass |
+
+### Status
+
+Pass with observation
+
+The validation content was clear and controlled, but its `selected model is unavailable` prefix
+misclassified an input-validation condition as a model outage.
 
 ### Evidence
 
@@ -664,11 +695,19 @@ Verify that the legacy review-level workflow and the v3 aspect-based workflow re
 - **v3 prediction successful:** Yes
 - **Navigation stable:** Yes
 - **Cross-version stale state observed:** Yes
+- **Exact leaked field/value:** Not recorded
+- **Source and destination version:** Both v2 → v3 and v3 → v2 were exercised, but the direction associated with the observation was not recorded
+- **Triggering navigation step:** Not recorded
 - **Errors:** None unexpected
 
 ### Status
 
-Pass
+Blocked
+
+Both workflows completed. The validator marked a cross-version stale state as observed but did
+not name the leaked v2/v3 control or result, its value, or the navigation direction that exposed
+it. The finding cannot be reproduced from this record and remains blocked pending a targeted
+retest.
 
 ### Evidence
 
