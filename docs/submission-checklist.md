@@ -115,11 +115,12 @@ The supplemental six-model command is:
 ```
 
 Juan Martinez delivered an initial 12-case authenticated Streamlit validation in PR #120,
-recorded in `dle602-a3/validation-juan.md`. It confirmed several workflows but also recorded
-five acceptance failures requiring technical triage or retest. The boxes below remain blank
-until the failed behaviours are resolved or reproduced, the selected screenshots are exported
-from the companion evidence document, and anonymous public access is verified. Automated tests
-cover parts of the underlying behaviour but are not a substitute for what a marker sees.
+recorded in `dle602-a3/validation-juan.md`. It confirmed several workflows, recorded three
+acceptance failures requiring technical triage, and left two stale-state checks blocked because
+the exact leaked fields and transitions were not captured. The boxes below remain blank until
+the failed behaviours are resolved or reproduced, the selected screenshots are exported from
+the companion evidence document, and anonymous public access is verified. Automated tests cover
+parts of the underlying behaviour but are not a substitute for what a marker sees.
 
 - [ ] Landing page clearly separates ISY503 v2.3.0 and DLE602 v3.0.0
 - [ ] Intro page does not duplicate the sidebar logo
@@ -195,7 +196,7 @@ artifact-mode decision but do not discharge these gates.
 | Clean installation | Luis Faria | [x] | `dle602-a3/release-verification.md` section 2 |
 | Tests and CPU smoke | Luis Faria | [x] | `dle602-a3/release-verification.md` sections 3 and 4 |
 | Artifact checksums/sizes | | [ ] | Sizes recorded in sections 1 and 5; per-artifact SHA-256 still to be captured in the table above |
-| Streamlit acceptance | Juan Martinez | [ ] | Initial authenticated QA in PR #120 recorded five failures; corrective triage/retest, screenshot export and anonymous-access verification remain outstanding |
+| Streamlit acceptance | Juan Martinez | [ ] | Initial authenticated QA in PR #120 recorded three failures and two blocked stale-state checks; corrective triage/retest, screenshot export and anonymous-access verification remain outstanding |
 | Package content/security scan | | [ ] | Preflight scan clean in section 6; rerun against the final archive |
 | ZIP extraction retest | | [ ] | Extracted lightweight package recorded 355 passed / 11 skipped in preflight; rerun against the final archive |
 | Final tag and GitHub release | | [ ] | Blocked by all outstanding gates above |

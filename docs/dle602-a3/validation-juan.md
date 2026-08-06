@@ -7,7 +7,7 @@
 - **Application URL:** https://review-pulse.streamlit.app/ReviewPulse_v3_0_0
 - **Browser and version:** Chrome V.150.0.8
 - **Validation environment:** Deployed Streamlit application, authenticated session
-- **Overall result:** Fail — five cases require triage and retesting before release
+- **Overall result:** Fail — three cases require triage; two stale-state checks are blocked pending reproducible detail
 - **Evidence source:** Companion Word document with screenshots, supplied by the validator through Torrens SharePoint
 - **Repository evidence status:** PDF export and selected report captures are pending before the final `v3.0.0` tag
 
@@ -81,13 +81,13 @@ The validation covers:
 | UI-03 | Mixed-polarity multi-aspect prediction | Pass with observation | EV-03 | Model-quality observation; separate aspect results rendered |
 | UI-04 | Aspect order and duplicate handling | Pass | EV-04 | |
 | UI-05 | Sample generator | Pass | EV-05 | |
-| UI-06 | Model switching and stale-result prevention | Fail | EV-06 | Stale output observed |
+| UI-06 | Model switching and stale-result prevention | Blocked | EV-06 | Exact stale field and triggering model transition were not recorded |
 | UI-07 | ATAE-LSTM attention evidence | Fail | EV-07 | Aspect change and alignment require triage |
 | UI-08 | DistilBERT attribution evidence | Fail | EV-08 | Aspect change and alignment require triage |
 | UI-09 | Unsupported evidence handling | Pass | EV-09 | |
 | UI-10 | Empty review validation | Fail | EV-10 | Misclassified message and stale output observed |
 | UI-11 | Empty/invalid aspect validation | Pass with observation | EV-11 | Validation content shown with an incorrect model-unavailable prefix |
-| UI-12 | ReviewPulse v2/v3 compatibility | Fail | EV-12 | Cross-version stale state observed |
+| UI-12 | ReviewPulse v2/v3 compatibility | Blocked | EV-12 | Exact leaked state and navigation direction were not recorded |
 
 Allowed status values:
 
@@ -376,15 +376,19 @@ Verify that changing models updates the result correctly and does not display st
 - **Correct model shown:** Yes
 - **Results refreshed:** Yes
 - **Stale output observed:** Yes
+- **Exact stale field/value:** Not recorded
+- **Source and destination model:** The TF-IDF → ATAE-LSTM → DistilBERT sequence was exercised, but the transition associated with the observation was not recorded
+- **Triggering transition:** Not recorded
 - **Evidence view refreshed/removed correctly:** Yes
 - **Errors:** None unexpected
 
 ### Status
 
-Fail
+Blocked
 
-The observed stale output contradicts the stale-result prevention criterion and requires
-reproduction before release.
+The validator marked stale output as observed but did not identify the stale field or value, the
+source and destination model, or the triggering transition. The finding cannot be reproduced
+from this record and remains blocked pending a targeted retest.
 
 ### Evidence
 
@@ -433,6 +437,8 @@ Verify that ATAE-LSTM produces a readable, aspect-specific attention evidence vi
 - **Evidence changed by aspect:** No
 - **Token alignment acceptable:** No
 - **Punctuation handled correctly:** No
+- **Causal explanation claimed by the interface:** No — the displayed caption states that token
+  scores are indicative evidence, not model reasoning or a causal explanation
 - **Errors:** 
 
 ### Status
@@ -689,14 +695,19 @@ Verify that the legacy review-level workflow and the v3 aspect-based workflow re
 - **v3 prediction successful:** Yes
 - **Navigation stable:** Yes
 - **Cross-version stale state observed:** Yes
+- **Exact leaked field/value:** Not recorded
+- **Source and destination version:** Both v2 → v3 and v3 → v2 were exercised, but the direction associated with the observation was not recorded
+- **Triggering navigation step:** Not recorded
 - **Errors:** None unexpected
 
 ### Status
 
-Fail
+Blocked
 
-Both workflows completed, but the observed cross-version stale state contradicts the isolation
-criterion and requires reproduction before release.
+Both workflows completed. The validator marked a cross-version stale state as observed but did
+not name the leaked v2/v3 control or result, its value, or the navigation direction that exposed
+it. The finding cannot be reproduced from this record and remains blocked pending a targeted
+retest.
 
 ### Evidence
 
