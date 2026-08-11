@@ -10,6 +10,25 @@ even where a preflight measurement exists, because they must be re-established a
 frozen commit. Group-owned acceptance items stay blank until the named contributor
 supplies evidence.
 
+## Status — 8 August 2026
+
+Three decisions taken in the academic repository change what several items below mean. They are
+recorded here so this file and the A3 report agree.
+
+- **Juan's QA findings are closed as accepted risk.** UI-06/07/08/10/12 will not be triaged before
+  submission. They ship as known, documented findings and never as release blockers. The report
+  states this in the RQ3 row of Table 1 and in the contribution log.
+- **Anonymous public access is no longer a blocking gate.** The sentence holding it open was
+  removed from Appendix E. One incognito check before upload is still worth doing, but nothing in
+  the report depends on it.
+- **Victor's independent reproduction is the only outstanding evidence in the report.** Appendix F
+  is the sole remaining "Pending", and its rows are removed, never published empty, if no
+  evidence arrives.
+
+Unchanged: every gate below that measures an artefact still requires that artefact. The final
+archive digests and the `v3.0.0` tag are not evidenced yet — the remote currently carries only
+`v3.0.0-rc.1`.
+
 ## Release identity
 
 - [ ] Exact post-merge #89 source commit recorded: `________________`
@@ -73,7 +92,7 @@ pip install -r requirements.txt -c constraints-a3.txt
 ```
 
 - [x] Full suite passes; counts and expected skips are recorded. Development machine 363 passed / 3 skipped, clean clone 357 / 9, extracted lightweight package 355 / 11; the deltas are explained in `dle602-a3/release-verification.md` section 3
-- [x] Sample-provenance tests **executed rather than skipped**: run where `outputs/absa/evaluation/predictions.csv` exists and confirm the six `test_sample_matches_the_official_test_split` cases are not in the skip list. They skip silently in a clean clone, so a green suite there does not evidence this check (see `dle602-a3/release-verification.md`)
+- [x] Sample-provenance tests **executed, not skipped**: run where `outputs/absa/evaluation/predictions.csv` exists and confirm the six `test_sample_matches_the_official_test_split` cases are not in the skip list. They skip silently in a clean clone, so a green suite there does not evidence this check (see `dle602-a3/release-verification.md`)
 - [x] Legacy ISY503 regression path remains functional. The v2 suite under `tests/` passes alongside the ABSA suite in the same run
 - [x] All available v3 artifacts clean-load. `scripts/smoke_absa.py` covers the four canonical models in the clean room with no SemEval data present; `scripts/smoke_target_gru.py` and `scripts/smoke_text_cnn.py` cover the two exploratory models
 - [x] `food` and `service` smoke predictions return one result per aspect
@@ -117,10 +136,11 @@ The supplemental six-model command is:
 Juan Martinez delivered an initial 12-case authenticated Streamlit validation in PR #120,
 recorded in `dle602-a3/validation-juan.md`. It confirmed several workflows, recorded three
 acceptance failures requiring technical triage, and left two stale-state checks blocked because
-the exact leaked fields and transitions were not captured. The boxes below remain blank until
-the failed behaviours are resolved or reproduced, the selected screenshots are exported from
-the companion evidence document, and anonymous public access is verified. Automated tests cover
-parts of the underlying behaviour but are not a substitute for what a marker sees.
+the exact leaked fields and transitions were not captured. Those findings are now **accepted as documented risk** for this
+submission and are not being triaged; see the status block above. The boxes below record what a
+marker actually sees, so they stay blank until each behaviour is confirmed against the deployed
+application. Automated tests cover parts of the underlying behaviour but are not a substitute for
+that confirmation.
 
 - [ ] Landing page clearly separates ISY503 v2.3.0 and DLE602 v3.0.0
 - [ ] Intro page does not duplicate the sidebar logo
@@ -131,7 +151,7 @@ parts of the underlying behaviour but are not a substitute for what a marker see
 - [ ] Supported token evidence renders safely with its limitation
 - [ ] Missing artifacts and invalid input show controlled errors without silent fallback
 - [ ] No stack trace or debug output appears in the user workflow
-- [ ] Public deployment opens without authentication in an incognito/unauthenticated session. The public link currently redirects to authentication, so this must stay pending until it is fixed and retested
+- [ ] Public deployment opens without authentication in an incognito/unauthenticated session. No longer a blocking gate, since no report claim depends on it, but worth one check before upload
 
 Capture at least:
 
@@ -191,12 +211,12 @@ artifact-mode decision but do not discharge these gates.
 
 | Gate | Owner | Status | Evidence |
 |---|---|:---:|---|
-| Report and references | Group | [ ] | Report v3 source frozen at `lfariabr/masters-swe-ai@5b5d671`; PDF still to be regenerated |
-| Contribution record | Group | [ ] | Juan delivered 12-case Streamlit QA in PR #120; Victor's independent reproduction remains outstanding |
+| Report and references | Group | [ ] | Content complete in `masters-swe-ai@419f7ab`, source `report/DLE602_A3_Report_v4.md`. The v5 PDF export still drops the required word-count line before References |
+| Contribution record | Group | [ ] | Juan's 12-case QA delivered and mapped in Appendix E. Victor's independent reproduction is the only outstanding evidence in the report |
 | Clean installation | Luis Faria | [x] | `dle602-a3/release-verification.md` section 2 |
 | Tests and CPU smoke | Luis Faria | [x] | `dle602-a3/release-verification.md` sections 3 and 4 |
 | Artifact checksums/sizes | | [ ] | Sizes recorded in sections 1 and 5; per-artifact SHA-256 still to be captured in the table above |
-| Streamlit acceptance | Juan Martinez | [ ] | Initial authenticated QA in PR #120 recorded three failures and two blocked stale-state checks; corrective triage/retest, screenshot export and anonymous-access verification remain outstanding |
+| Streamlit acceptance | Juan Martinez | [x] | Authenticated 12-case QA delivered in PR #120, hardened in PR #121. Three acceptance failures and two unreproduced observations are accepted as documented risk, not blockers |
 | Package content/security scan | | [ ] | Preflight scan clean in section 6; rerun against the final archive |
 | ZIP extraction retest | | [ ] | Extracted lightweight package recorded 355 passed / 11 skipped in preflight; rerun against the final archive |
 | Final tag and GitHub release | | [ ] | Blocked by all outstanding gates above |
