@@ -29,6 +29,27 @@ Unchanged: every gate below that measures an artefact still requires that artefa
 archive digests and the `v3.0.0` tag are not evidenced yet — the remote currently carries only
 `v3.0.0-rc.1`.
 
+## Dry run — 15 August 2026
+
+Both archives were built from `main` at `8787a73` with a clean tree and no report bundled, to prove
+the pipeline before the final export lands. The final build adds the report PDF and therefore
+changes both digests; these values are evidence that the builder works, never the shipped numbers.
+
+| Mode | Bytes | Size | SHA-256 |
+|---|---:|---:|---|
+| `lightweight` | 54,042,836 | 51.5 MB | `08ee82d7962352aca82f54ad54b82e6e17ac178d590b901d2b58a70f4fcc9181` |
+| `all` | 301,248,404 | 287.3 MB | `60f99ae6a2ee28ae773ec3ffe8246a0c6ef0f57a30c55ccbd4c6c180a08f2e30` |
+
+The measured sizes confirm the earlier `release/v3.0.0` preflight figures of 52 MB and 288 MB. The
+July archives still sitting in `dist/` are superseded and must not be uploaded: the lightweight one
+is 11 MB because it was built before the LFS artifacts were materialised, so it carries pointer
+files where the models should be.
+
+Content scan of the extracted lightweight archive passed every exclusion gate: no `.git`, `.venv`,
+`__pycache__`, `.pytest_cache`, `.env`, `.DS_Store`, no SemEval XML, no `predictions.csv` and no
+unresolved LFS pointer. `data/` contains only `.gitkeep`. Full suite on the source tree: **363
+passed / 3 skipped**, matching the recorded baseline.
+
 ## Release identity
 
 - [ ] Exact post-merge #89 source commit recorded: `________________`
@@ -44,7 +65,7 @@ The implementation baseline before #89 is merge commit `0f02be3` (PR #100). The 
 
 ## Report and group record
 
-- [ ] Final report is 1,350–1,650 words under its declared counting rule. Report v3 source declares 1,550; recheck after the contribution pass and re-export
+- [ ] Final report is 1,350–1,650 words under its declared counting rule. The v4 source declares 1,550 at the end of Section 6; confirm the figure survives the export
 - [x] Canonical four-model results remain separate from exploratory GRU/TextCNN results. Table 2 is canonical; GRU and TextCNN appear only in Appendix A
 - [x] Tables, figures and token-evidence examples trace to frozen outputs. Canonical evidence cites commit `bf36c3b3`; the supplemental track cites artifact commit `cef08fa`, evaluation commit `941148c` and its prediction SHA-256
 - [x] Attention and attribution are described as indicative, not causal. Stated in the RQ3 answer and repeated in the Table 4 caption
@@ -211,7 +232,7 @@ artifact-mode decision but do not discharge these gates.
 
 | Gate | Owner | Status | Evidence |
 |---|---|:---:|---|
-| Report and references | Group | [ ] | Content complete in `masters-swe-ai@419f7ab`, source `report/DLE602_A3_Report_v4.md`. The v5 PDF export still drops the required word-count line before References |
+| Report and references | Group | [ ] | Content complete and frozen at `masters-swe-ai@6eaad14`, source `report/DLE602_A3_Report_v4.md`. The Markdown carries the word count at the end of Section 6, but the Word-produced export keeps dropping it: v6 still returns zero `pdftotext` hits. Export correctness is tracked in the academic repo |
 | Contribution record | Group | [ ] | Juan's 12-case QA delivered and mapped in Appendix E. Victor's independent reproduction is the only outstanding evidence in the report |
 | Clean installation | Luis Faria | [x] | `dle602-a3/release-verification.md` section 2 |
 | Tests and CPU smoke | Luis Faria | [x] | `dle602-a3/release-verification.md` sections 3 and 4 |
