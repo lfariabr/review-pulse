@@ -17,30 +17,39 @@
 | Source and models, lightweight | `ReviewPulse-v3.0.0-lightweight.zip` | Five of six v3 models, approx. 52 MB |
 | Source and models, complete | `ReviewPulse-v3.0.0-all-models.zip` | All six v3 models, approx. 288 MB |
 
+The report is uploaded as its own file and is deliberately not bundled inside either archive, so the
+code package and the written submission can be opened independently.
+
 Both archives are built from one frozen commit by `scripts/build_a3_package.py` and differ only in
 whether the v3 DistilBERT directory is included. That directory is roughly 256 MB and accounts for
-the entire size difference. Where the upload limit refuses the complete archive, it is provided
-through the shared link recorded with the submission.
+the entire size difference. Both archives are uploaded directly; the confirmed upload limit accepts
+the complete one, so no external link is involved anywhere in this submission.
+
+Start with the complete archive if you want to exercise all six models, including DistilBERT. The
+lightweight archive exists for a faster download and runs five of the six.
 
 ## Integrity
 
-Fill in at the final build; the values below are properties of the shipped files.
+Source commit: `7adb3ca401913e2486038ddf592292baea0e9511` · Tag: `v3.0.0`
 
-| Archive | Bytes | SHA-256 |
-|---|---:|---|
-| `ReviewPulse-v3.0.0-lightweight.zip` | | |
-| `ReviewPulse-v3.0.0-all-models.zip` | | |
-
-Source commit: `________________` · Tag: `v3.0.0`
-
-Verify a download with:
+This file travels inside the archives, so it cannot state their SHA-256 digests: no file can carry
+a checksum of the container holding it. The two archive digests are published outside the packages,
+in the `v3.0.0` GitHub release and in the checksum note accompanying the upload. Verify a download
+against those:
 
 ```bash
 shasum -a 256 ReviewPulse-v3.0.0-lightweight.zip
 ```
 
-Each archive also carries `PACKAGE_MANIFEST.json`, recording the byte size and SHA-256 of every
-entry, plus the source commit the package was built from.
+What this file can confirm is everything one level down. Each archive carries
+`PACKAGE_MANIFEST.json`, recording the source commit plus the byte size and SHA-256 of **every
+entry**, so any individual file can be checked without trusting the archive digest at all. Builds
+are deterministic: entry timestamps are fixed to the source commit time and paths are sorted, so
+rebuilding from `7adb3ca` in the same mode reproduces identical bytes. Two consecutive builds were
+confirmed byte-identical.
+
+The report is uploaded alongside these archives and is not bundled inside them, so the digests
+depend only on the source tree and the model artifacts.
 
 ## Running the code
 

@@ -54,12 +54,11 @@ passed / 3 skipped**, matching the recorded baseline.
 
 ## Release identity
 
-- [ ] Exact post-merge #89 source commit recorded: `________________`
-- [ ] Academic report commit recorded: `________________`
-- [ ] Submission ZIP SHA-256 recorded: `________________`
-- [ ] ZIP size recorded: `________________`
-- [ ] LMS upload limit confirmed: `________________`
-- [ ] Artifact mode chosen against that limit. Measured on `release/v3.0.0`: `none` 2.5 MB, `lightweight` 52 MB, `all` 288 MB
+- [x] Exact post-merge #89 source commit recorded: `7adb3ca401913e2486038ddf592292baea0e9511`
+- [x] Academic report commit recorded: `6eaad14` (source `report/DLE602_A3_Report_v4.md`; export tracked separately)
+- [x] Submission ZIP SHA-256 and size recorded. This file ships inside both archives, so it cannot state their digests without invalidating them. The measured values live in the academic checklist, the `v3.0.0` GitHub release and the checksum note accompanying the upload; `PACKAGE_MANIFEST.json` covers every entry one level down
+- [x] LMS upload limit confirmed: the 300 MB-class archive uploads directly, so no shared link is required
+- [x] Artifact mode chosen against that limit: **both** modes are uploaded. Measured on `release/v3.0.0`: `none` 2.5 MB, `lightweight` 52 MB, `all` 288 MB
 - [ ] `v3.0.0` tag points to the verified source commit
 - [ ] GitHub release notes and submitted package describe the same contents
 
@@ -73,7 +72,7 @@ The implementation baseline before #89 is merge commit `0f02be3` (PR #100). The 
 - [x] Attention and attribution are described as indicative, not causal. Stated in the RQ3 answer and repeated in the Table 4 caption
 - [ ] Contribution record and dated hand-offs are confirmed by all members
 - [x] Academic Integrity Declaration and Statement of Acknowledgement are complete. Report sections 12 and 13, including the AI-tool acknowledgement
-- [ ] Final PDF is copied into the package
+- [x] Report delivery decided: uploaded as its own file, deliberately not bundled inside either archive, so the archive digests depend only on the source tree and the model artifacts
 
 Group members:
 
@@ -208,7 +207,7 @@ recorded now.
 - [x] The preserved v2 DistilBERT external dependency is documented and excluded from the A3 offline guarantee. Legacy `outputs/distilbert.pt` stores only the classification head and fine-tuned layers, so its frozen base encoder is fetched from `distilbert-base-uncased`. This is stated in the README and quick-start Path A, and the offline guarantee is scoped to the v3 models it applies to
 - [x] Artifact-bearing modes include the four legacy v2 files required by the preserved ISY503 page. `LEGACY_ARTIFACTS` ships `baseline.joblib`, `bilstm.pt`, `distilbert.pt` and `vocab.json`
 - [x] The lightweight CPU strategy includes at least the verified small-model path. All five small v3 artifacts are in `lightweight` mode and each loaded wholly on CPU in the clean room
-- [ ] DistilBERT packaging decision is consistent with the confirmed LMS limit
+- [x] DistilBERT packaging decision is consistent with the confirmed LMS limit. The limit accepts the complete archive, so DistilBERT ships in `all` and both modes are uploaded; the lightweight archive is retained as a faster download and not as a size workaround
 - [x] No package claims offline support if a Hugging Face download is still required. The README and quick-start Path A both carry the legacy-DistilBERT caveat
 
 ## Package inspection
