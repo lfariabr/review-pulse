@@ -147,11 +147,24 @@ The report v3 Markdown source is committed in
 therefore retains the contribution and final-PDF gates. Regenerate the PDF and
 record the resulting academic commit before building the submission archive.
 
+> **Superseded, 15 August 2026.** This section records the state at the time of
+> verification and is kept as written. The report has since moved to
+> `report/DLE602_A3_Report_v4.md`, frozen at `lfariabr/masters-swe-ai@6eaad14`,
+> with Appendices A-H complete. Only the final PDF and DOCX export remains.
+
 ## 8. Still outstanding before the tag
 
 - Final A3 report PDF, and its commit recorded in the checklist.
 - Contribution evidence from all group members.
 - Confirmed LMS upload limit. The 51.53 MiB lightweight candidate is the planned
   mode for the anticipated 100 MB ceiling; the exact limit still needs confirmation.
+
+> **Status, 15 August 2026.** Contribution evidence is complete: Juan's Streamlit
+> QA landed in PR #120 and PR #121, and Victor's reproduction and shipped-artifact
+> verification in PR #123 at `8787a73`, closing all seven Appendix F checks. The
+> final PDF and the LMS limit are the two items still genuinely open. A 15 August
+> rebuild measured the lightweight archive at 54,042,836 bytes, confirming the
+> 51.53 MiB figure above and its fit under a 100 MB ceiling; the complete archive
+> at 301,248,404 bytes would need a shared link under that ceiling.
 - Final archive built from the post-merge commit, with its SHA-256 recorded.
 - `v3.0.0` tag, created only after the items above.

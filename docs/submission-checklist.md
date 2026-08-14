@@ -23,7 +23,9 @@ recorded here so this file and the A3 report agree.
   the report depends on it.
 - **Victor's independent reproduction is the only outstanding evidence in the report.** Appendix F
   is the sole remaining "Pending", and its rows are removed, never published empty, if no
-  evidence arrives.
+  evidence arrives. **Closed on 15 August:** all seven Appendix F checks now record observed
+  command output and a Pass, and Table F2 reports the shipped-artifact results beside the
+  separately versioned CUDA retrain. No group-owned evidence is outstanding.
 
 Unchanged: every gate below that measures an artefact still requires that artefact. The final
 archive digests and the `v3.0.0` tag are not evidenced yet — the remote currently carries only
@@ -233,7 +235,7 @@ artifact-mode decision but do not discharge these gates.
 | Gate | Owner | Status | Evidence |
 |---|---|:---:|---|
 | Report and references | Group | [ ] | Content complete and frozen at `masters-swe-ai@6eaad14`, source `report/DLE602_A3_Report_v4.md`. The Markdown carries the word count at the end of Section 6, but the Word-produced export keeps dropping it: v6 still returns zero `pdftotext` hits. Export correctness is tracked in the academic repo |
-| Contribution record | Group | [ ] | Juan's 12-case QA delivered and mapped in Appendix E. Victor's independent reproduction is the only outstanding evidence in the report |
+| Contribution record | Group | [x] | Juan's 12-case QA delivered and mapped in Appendix E; Victor's independent reproduction and shipped-artifact verification delivered and recorded across all seven Appendix F rows |
 | Clean installation | Luis Faria | [x] | `dle602-a3/release-verification.md` section 2 |
 | Tests and CPU smoke | Luis Faria | [x] | `dle602-a3/release-verification.md` sections 3 and 4 |
 | Artifact checksums/sizes | | [ ] | Sizes recorded in sections 1 and 5; per-artifact SHA-256 still to be captured in the table above |
