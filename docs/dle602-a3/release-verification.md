@@ -1,5 +1,12 @@
 # ReviewPulse v3.0.0 release verification (#89)
 
+> **Final release note — 15 August 2026.** The measurements below preserve the pre-release
+> verification trail. The release is now frozen at `c2ee52ab4c4415eb2ddc4223500040147b2a92b9`
+> (`v3.0.0`). The final archives are 54,048,531 bytes (lightweight) and 301,254,100 bytes
+> (all-models); their authoritative SHA-256 digests are published in the GitHub release and in
+> the reproducibility report. Any earlier candidate values or open gates in this historical record
+> are superseded, not current blockers.
+
 Evidence recorded while preparing the release branch. Every measurement below was
 produced on the branch `release/v3.0.0`; the final tag must be created only after
 the A3 report and contribution evidence are complete, so the source commit and
@@ -152,14 +159,14 @@ record the resulting academic commit before building the submission archive.
 > `report/DLE602_A3_Report_v4.md`, frozen at `lfariabr/masters-swe-ai@6eaad14`,
 > with Appendices A-H complete. Only the final PDF and DOCX export remains.
 
-## 8. Still outstanding before the tag
+## 8. Historical pre-release gates (superseded)
 
 - Final A3 report PDF, and its commit recorded in the checklist.
 - Contribution evidence from all group members.
 - Confirmed LMS upload limit. The 51.53 MiB lightweight candidate is the planned
   mode for the anticipated 100 MB ceiling; the exact limit still needs confirmation.
 
-> **Status, 15 August 2026.** Contribution evidence is complete: Juan's Streamlit
+> **Historical status, 15 August 2026.** Contribution evidence is complete: Juan's Streamlit
 > QA landed in PR #120 and PR #121, and Victor's reproduction and shipped-artifact
 > verification in PR #123 at `8787a73`, closing all seven Appendix F checks. The
 > final PDF and the LMS limit are the two items still genuinely open. A 15 August
@@ -167,4 +174,4 @@ record the resulting academic commit before building the submission archive.
 > 51.53 MiB figure above and its fit under a 100 MB ceiling; the complete archive
 > at 301,248,404 bytes would need a shared link under that ceiling.
 - Final archive built from the post-merge commit, with its SHA-256 recorded.
-- `v3.0.0` tag, created only after the items above.
+- `v3.0.0` tag, subsequently created at `c2ee52a` after the items above were resolved.

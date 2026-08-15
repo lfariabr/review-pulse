@@ -30,7 +30,7 @@ lightweight archive exists for a faster download and runs five of the six.
 
 ## Integrity
 
-Source commit: `7adb3ca401913e2486038ddf592292baea0e9511` · Tag: `v3.0.0`
+Source commit: `c2ee52ab4c4415eb2ddc4223500040147b2a92b9` · Tag: `v3.0.0`
 
 This file travels inside the archives, so it cannot state their SHA-256 digests: no file can carry
 a checksum of the container holding it. The two archive digests are published outside the packages,
@@ -45,7 +45,7 @@ What this file can confirm is everything one level down. Each archive carries
 `PACKAGE_MANIFEST.json`, recording the source commit plus the byte size and SHA-256 of **every
 entry**, so any individual file can be checked without trusting the archive digest at all. Builds
 are deterministic: entry timestamps are fixed to the source commit time and paths are sorted, so
-rebuilding from `7adb3ca` in the same mode reproduces identical bytes. Two consecutive builds were
+rebuilding from `c2ee52a` in the same mode reproduces identical bytes. Two consecutive builds were
 confirmed byte-identical.
 
 The report is uploaded alongside these archives and is not bundled inside them, so the digests

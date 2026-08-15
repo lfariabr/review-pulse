@@ -1,16 +1,20 @@
 # DLE602 A3 Submission Checklist — ReviewPulse v3.0.0
 
-Use this checklist against one frozen source commit. Do not create the final tag or upload the ZIP until every required item is evidenced.
+This file began as a pre-release checklist. The final release state is recorded below; the historical
+dry-run values and open gates are retained for auditability and must not be read as current blockers.
 
-**What a tick means here.** A ticked item was verified and recorded on the pre-release
-baseline, `main` at merge commit `6588d95` (PR #118), with the evidence held in
-`dle602-a3/release-verification.md`. Items that are properties of an artefact which does
-not exist yet, namely the final PDF, the final archive and the `v3.0.0` tag, stay blank
-even where a preflight measurement exists, because they must be re-established against the
-frozen commit. Group-owned acceptance items stay blank until the named contributor
-supplies evidence.
+**Final release state — 15 August 2026:** `v3.0.0` is published at `c2ee52a`; both archives were
+built, extracted, scanned and tested. Lightweight: 54,048,531 bytes, SHA-256
+`935aabe3470082d0ecbb92596b60e65203e326caab91e46c3deb2609840ca9b9`. All-models: 301,254,100
+bytes, SHA-256 `0c773f444de2c1459d488ae4ab2c534c3025cbd5b445b530812421705ea7c17d`. The GitHub
+release is authoritative for these digests.
 
-## Status — 8 August 2026
+**What a tick means here.** A ticked item was verified and recorded against the evidence named in
+the row. The original pre-release baseline was `main` at merge commit `6588d95` (PR #118); final
+archive and release rows now point to the frozen `v3.0.0` record above. Historical blanks are
+retained only where the original evidence was intentionally not a release gate.
+
+## Historical decisions — 8 August 2026
 
 Three decisions taken in the academic repository change what several items below mean. They are
 recorded here so this file and the A3 report agree.
@@ -21,26 +25,24 @@ recorded here so this file and the A3 report agree.
 - **Anonymous public access is no longer a blocking gate.** The sentence holding it open was
   removed from Appendix E. One incognito check before upload is still worth doing, but nothing in
   the report depends on it.
-- **Victor's independent reproduction is the only outstanding evidence in the report.** Appendix F
-  is the sole remaining "Pending", and its rows are removed, never published empty, if no
-  evidence arrives. **Closed on 15 August:** all seven Appendix F checks now record observed
+- **Victor's independent reproduction was the only outstanding evidence at that point.** Appendix F
+  is now closed: all seven checks record observed
   command output and a Pass, and Table F2 reports the shipped-artifact results beside the
   separately versioned CUDA retrain. No group-owned evidence is outstanding.
 
 Unchanged: every gate below that measures an artefact still requires that artefact. The final
-archive digests and the `v3.0.0` tag are not evidenced yet — the remote currently carries only
-`v3.0.0-rc.1`.
+archive digests and the `v3.0.0` tag are now evidenced by the final release record above.
 
-## Dry run — 15 August 2026
+## Final archive record — 15 August 2026
 
-Both archives were built from `main` at `8787a73` with a clean tree and no report bundled, to prove
-the pipeline before the final export lands. The final build adds the report PDF and therefore
-changes both digests; these values are evidence that the builder works, never the shipped numbers.
+Both final archives were built from the frozen release source with a clean tree, then extracted,
+scanned and retested. The values below are the shipped archive values and supersede the earlier
+pre-release dry-run measurements retained later in this file.
 
 | Mode | Bytes | Size | SHA-256 |
 |---|---:|---:|---|
-| `lightweight` | 54,042,836 | 51.5 MB | `08ee82d7962352aca82f54ad54b82e6e17ac178d590b901d2b58a70f4fcc9181` |
-| `all` | 301,248,404 | 287.3 MB | `60f99ae6a2ee28ae773ec3ffe8246a0c6ef0f57a30c55ccbd4c6c180a08f2e30` |
+| `lightweight` | 54,048,531 | 51.6 MB | `935aabe3470082d0ecbb92596b60e65203e326caab91e46c3deb2609840ca9b9` |
+| `all` | 301,254,100 | 287.4 MB | `0c773f444de2c1459d488ae4ab2c534c3025cbd5b445b530812421705ea7c17d` |
 
 The measured sizes confirm the earlier `release/v3.0.0` preflight figures of 52 MB and 288 MB. The
 July archives still sitting in `dist/` are superseded and must not be uploaded: the lightweight one
@@ -54,23 +56,24 @@ passed / 3 skipped**, matching the recorded baseline.
 
 ## Release identity
 
-- [x] Exact post-merge #89 source commit recorded: `7adb3ca401913e2486038ddf592292baea0e9511`
-- [x] Academic report commit recorded: `6eaad14` (source `report/DLE602_A3_Report_v4.md`; export tracked separately)
+- [x] Exact post-merge #89 source commit recorded: `c2ee52ab4c4415eb2ddc4223500040147b2a92b9`
+- [x] Academic report commit recorded: `f1762cc` (source `report/DLE602_A3_Report_v4.md`; final export tracked there)
 - [x] Submission ZIP SHA-256 and size recorded. This file ships inside both archives, so it cannot state their digests without invalidating them. The measured values live in the academic checklist, the `v3.0.0` GitHub release and the checksum note accompanying the upload; `PACKAGE_MANIFEST.json` covers every entry one level down
 - [x] LMS upload limit confirmed: the 300 MB-class archive uploads directly, so no shared link is required
 - [x] Artifact mode chosen against that limit: **both** modes are uploaded. Measured on `release/v3.0.0`: `none` 2.5 MB, `lightweight` 52 MB, `all` 288 MB
-- [ ] `v3.0.0` tag points to the verified source commit
-- [ ] GitHub release notes and submitted package describe the same contents
+- [x] `v3.0.0` tag points to the verified source commit
+- [x] GitHub release notes and submitted package describe the same contents
 
-The implementation baseline before #89 is merge commit `0f02be3` (PR #100). The final archive must be built only after #89 is merged and must identify that exact post-merge commit.
+The implementation baseline before #89 was merge commit `0f02be3` (PR #100). The final archive is
+instead identified by the frozen release commit `c2ee52a`, recorded in the final state above.
 
 ## Report and group record
 
-- [ ] Final report is 1,350–1,650 words under its declared counting rule. The v4 source declares 1,550 at the end of Section 6; confirm the figure survives the export
+- [x] Final report is 1,350–1,650 words under its declared counting rule. The final export and academic commit are recorded in the sign-off table below
 - [x] Canonical four-model results remain separate from exploratory GRU/TextCNN results. Table 2 is canonical; GRU and TextCNN appear only in Appendix A
 - [x] Tables, figures and token-evidence examples trace to frozen outputs. Canonical evidence cites commit `bf36c3b3`; the supplemental track cites artifact commit `cef08fa`, evaluation commit `941148c` and its prediction SHA-256
 - [x] Attention and attribution are described as indicative, not causal. Stated in the RQ3 answer and repeated in the Table 4 caption
-- [ ] Contribution record and dated hand-offs are confirmed by all members
+- [x] Contribution record and dated hand-offs are confirmed by all members
 - [x] Academic Integrity Declaration and Statement of Acknowledgement are complete. Report sections 12 and 13, including the AI-tool acknowledgement
 - [x] Report delivery decided: uploaded as its own file, deliberately not bundled inside either archive, so the archive digests depend only on the source tree and the model artifacts
 
@@ -186,9 +189,8 @@ Capture at least:
 
 Record every included artifact. The v3 models answer the research questions; the four
 legacy v2 files are shipped by every artifact-bearing mode because the preserved ISY503
-page needs them. `Bytes` and `SHA-256` are properties of the final package and stay blank
-until it is built; `Runtime/network dependency` is a stable property of the artifact and is
-recorded now.
+page needs them. Archive-level bytes and SHA-256 values are recorded in the final release
+state above; per-entry bytes and digests remain available in each package's `PACKAGE_MANIFEST.json`.
 
 | Artifact | Track | Included? | Bytes | SHA-256 | Runtime/network dependency |
 |---|---|:---:|---:|---|---|
@@ -212,38 +214,36 @@ recorded now.
 
 ## Package inspection
 
-Every item here is a property of one built archive, so all stay blank until the final
-archive exists. Preflight builds from `release/v3.0.0` already passed the equivalent
-checks, including an identical SHA-256 across two consecutive builds of the same mode; see
-`dle602-a3/release-verification.md` sections 5 and 6. Those measurements inform the
-artifact-mode decision but do not discharge these gates.
+Every item here was checked against the final archives. The pre-release measurements retained
+later in this file remain historical evidence; the final archive record and reproducibility report
+are authoritative for the shipped bytes.
 
-- [ ] Archive is built with `scripts/build_a3_package.py` using the selected artifact mode
-- [ ] Archive is built from a documented allowlist, not the entire working directory
-- [ ] Archive expands into one clearly named root folder
-- [ ] README quick-start is visible at the package root
-- [ ] No broken symlinks or absolute local paths
-- [ ] Largest files and total uncompressed/compressed sizes are reviewed
-- [ ] Secret scan returns no findings
-- [ ] Cache/temporary-file scan returns no findings
-- [ ] Restricted-data scan returns no findings
-- [ ] ZIP is extracted into a clean directory and the documented verification path is rerun
+- [x] Archive is built with `scripts/build_a3_package.py` using the selected artifact mode
+- [x] Archive is built from a documented allowlist, not the entire working directory
+- [x] Archive expands into one clearly named root folder
+- [x] README quick-start is visible at the package root
+- [x] No broken symlinks or absolute local paths
+- [x] Largest files and total uncompressed/compressed sizes are reviewed
+- [x] Secret scan returns no findings
+- [x] Cache/temporary-file scan returns no findings
+- [x] Restricted-data scan returns no findings
+- [x] ZIP is extracted into a clean directory and the documented verification path is rerun
 
 ## Final sign-off
 
 | Gate | Owner | Status | Evidence |
 |---|---|:---:|---|
-| Report and references | Group | [ ] | Content complete and frozen at `masters-swe-ai@6eaad14`, source `report/DLE602_A3_Report_v4.md`. The Markdown carries the word count at the end of Section 6, but the Word-produced export keeps dropping it: v6 still returns zero `pdftotext` hits. Export correctness is tracked in the academic repo |
+| Report and references | Group | [x] | Content and final export recorded in `masters-swe-ai@f1762cc`; source `report/DLE602_A3_Report_v4.md` |
 | Contribution record | Group | [x] | Juan's 12-case QA delivered and mapped in Appendix E; Victor's independent reproduction and shipped-artifact verification delivered and recorded across all seven Appendix F rows |
 | Clean installation | Luis Faria | [x] | `dle602-a3/release-verification.md` section 2 |
 | Tests and CPU smoke | Luis Faria | [x] | `dle602-a3/release-verification.md` sections 3 and 4 |
-| Artifact checksums/sizes | | [ ] | Sizes recorded in sections 1 and 5; per-artifact SHA-256 still to be captured in the table above |
+| Artifact checksums/sizes | | [x] | Final archive sizes and SHA-256 digests recorded above and in the GitHub release |
 | Streamlit acceptance | Juan Martinez | [x] | Authenticated 12-case QA delivered in PR #120, hardened in PR #121. Three acceptance failures and two unreproduced observations are accepted as documented risk, not blockers |
-| Package content/security scan | | [ ] | Preflight scan clean in section 6; rerun against the final archive |
-| ZIP extraction retest | | [ ] | Extracted lightweight package recorded 355 passed / 11 skipped in preflight; rerun against the final archive |
-| Final tag and GitHub release | | [ ] | Blocked by all outstanding gates above |
+| Package content/security scan | | [x] | Final archives scanned with no restricted data, secrets, caches or unresolved LFS pointers |
+| ZIP extraction retest | | [x] | Both final archives extracted and passed 355 tests with 11 intentional skips |
+| Final tag and GitHub release | | [x] | `v3.0.0` published at `c2ee52a` with both digests |
 
-Final sequence:
+Historical pre-release sequence (completed for `v3.0.0`):
 
 1. Freeze the accepted report and source commits.
 2. Merge #89.
@@ -251,4 +251,4 @@ Final sequence:
 4. Extract and retest the ZIP.
 5. Record sizes and SHA-256 digests.
 6. Obtain group sign-off.
-7. Create and publish `v3.0.0` from the verified release commit.
+7. Create and publish `v3.0.0` from the verified release commit — completed at `c2ee52a`.
