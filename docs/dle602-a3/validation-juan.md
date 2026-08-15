@@ -20,7 +20,7 @@ This record preserves the validator's observed strings and behaviours. An incorr
 prediction is treated as a model-quality observation when the interface still satisfies its
 acceptance criteria. An observed interface behaviour that contradicts an expected result is
 recorded as a failure. Anonymous public access was not part of Juan's authenticated validation
-session and remains a separate pending release gate in `docs/submission-checklist.md`.
+session. A separate incognito check remains a non-blocking follow-up.
 
 ---
 

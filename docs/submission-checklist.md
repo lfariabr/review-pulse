@@ -91,7 +91,7 @@ Group members:
 - [x] No restricted SemEval XML or derived row-level dataset is redistributed. The archive carries no `.xml`, no `predictions.csv`, no `results.json` and nothing under `data/semeval2014/` beyond `.gitkeep`
 - [x] SemEval acquisition, placement and checksum instructions are included. `dle602-a3/semeval-restaurants.md`, quick-start Path C, and the `FileNotFoundError` raised by `parse_aspect_examples`
 - [x] Third-party dependencies and cited model/data sources are documented. `requirements.txt`, `constraints-a3.txt` and the report reference list
-- [ ] Git status is clean before the package is built
+- [x] Git status is clean before the package is built. Confirmed for the frozen release build and recorded in the release verification trail
 
 ## Environment and installation
 
@@ -194,16 +194,16 @@ state above; per-entry bytes and digests remain available in each package's `PAC
 
 | Artifact | Track | Included? | Bytes | SHA-256 | Runtime/network dependency |
 |---|---|:---:|---:|---|---|
-| TF-IDF | v3 | [ ] | | | None; `joblib` load from disk |
-| Target LSTM | v3 | [ ] | | | None; `torch.load` from disk |
-| Target GRU | v3 | [ ] | | | None; `torch.load` from disk |
-| TextCNN | v3 | [ ] | | | None; `torch.load` from disk |
-| ATAE-LSTM | v3 | [ ] | | | None; `torch.load` from disk |
-| DistilBERT | v3 | [ ] | | | None; `from_pretrained(local_files_only=True)` from the bundled directory |
-| `outputs/baseline.joblib` | legacy v2 | [ ] | | | None; `joblib` load from disk |
-| `outputs/bilstm.pt` | legacy v2 | [ ] | | | None; `torch.load` from disk |
-| `outputs/distilbert.pt` | legacy v2 | [ ] | | | **Hugging Face**: fetches the frozen `distilbert-base-uncased` base encoder. Excluded from the A3 offline guarantee |
-| `outputs/vocab.json` | legacy v2 | [ ] | | | None; local vocabulary file |
+| `outputs/absa/tfidf_baseline.joblib` | v3 | both | 812,532 | `6103d7fc76fc11198b2da6e84f40a13eb0efe00afd98fb365f7ed910c4e6a0ad` | None; `joblib` load from disk |
+| `outputs/absa/target_lstm.pt` | v3 | both | 2,354,886 | `f0c73e42d199a7c88dea2d7c26c35a8096bf7d5139cdac50379dd9c9a81d9755` | None; `torch.load` from disk |
+| `outputs/absa/target_gru.pt` | v3 | both | 2,119,733 | `28a49eb8a2d0e142363e2d565ffbc3ed184aed4e5fa915966e15dc11805f86ba` | None; `torch.load` from disk |
+| `outputs/absa/text_cnn.pt` | v3 | both | 1,894,296 | `3659676e4879af30cf359dbc5c7c24be9a8fdebccd55630e9972f53c436951cb` | None; `torch.load` from disk |
+| `outputs/absa/atae_lstm.pt` | v3 | both | 2,767,650 | `b6b73d93a17c562290b8bd1627a01d891033d4d8645960edc0e7bfb3959629b8` | None; `torch.load` from disk |
+| `outputs/absa/distilbert/` | v3 | all only | 268,549,415 | Per-file in manifest | None; `from_pretrained(local_files_only=True)` from the bundled directory |
+| `outputs/baseline.joblib` | legacy v2 | both | 1,401,604 | `210f3acb60cd236e8badc63cee0c27f5f5bd4c998907a32d2e4c3b19a22ce4a1` | None; `joblib` load from disk |
+| `outputs/bilstm.pt` | legacy v2 | both | 15,618,833 | `821a359208d8cc855f1272e4c7b6a4aee06e5ccaa2e26e996219278621c273dd` | None; `torch.load` from disk |
+| `outputs/distilbert.pt` | legacy v2 | both | 30,266,293 | `8d9eb7751ac8599bdbaee6c90abb407656ff31348c0fd2abf61a3ac4871876a5` | **Hugging Face**: fetches the frozen `distilbert-base-uncased` base encoder. Excluded from the A3 offline guarantee |
+| `outputs/vocab.json` | legacy v2 | both | 275,103 | `824a6cddc8affe09ac618eb78b03afbbd689003ed9fd812e87e7f72ef3e5eea5` | None; local vocabulary file |
 
 - [x] Included v3 artifacts load fully offline. All six read from local files and none contacts a remote host at inference time
 - [x] The preserved v2 DistilBERT external dependency is documented and excluded from the A3 offline guarantee. Legacy `outputs/distilbert.pt` stores only the classification head and fine-tuned layers, so its frozen base encoder is fetched from `distilbert-base-uncased`. This is stated in the README and quick-start Path A, and the offline guarantee is scoped to the v3 models it applies to
