@@ -11,11 +11,16 @@
 - **Evidence source:** Companion Word document with screenshots, supplied by the validator through Torrens SharePoint
 - **Repository evidence status:** PDF export and selected report captures are pending before the final `v3.0.0` tag
 
+**Post-release disposition (15 August 2026):** The original authenticated QA record is preserved
+unchanged. Its three acceptance failures and two unreproduced stale-state observations were
+reviewed, documented as accepted release risks, and incorporated into the A3 report. The final
+release no longer treats the pending export/tag wording above as an open gate.
+
 This record preserves the validator's observed strings and behaviours. An incorrect model
 prediction is treated as a model-quality observation when the interface still satisfies its
 acceptance criteria. An observed interface behaviour that contradicts an expected result is
 recorded as a failure. Anonymous public access was not part of Juan's authenticated validation
-session and remains a separate pending release gate in `docs/submission-checklist.md`.
+session. A separate incognito check remains a non-blocking follow-up.
 
 ---
 

@@ -1,12 +1,12 @@
 # ReviewPulse v3.0.0 (DLE602 A3) — Reproducibility & Usability Report
 
-**Verified**: 2026-08-15 | **Python**: 3.14.3 | **Commit**: c2ee52ab4c4415eb2ddc4223500040147b2a92b9
+**Verified**: 2026-08-15 | **Reference Python**: 3.12.10 | **Verification Python**: 3.14.3 | **Commit**: c2ee52ab4c4415eb2ddc4223500040147b2a92b9
 
 ## Executive Summary
 
 ✅ **Build reproducibility**: Bit-identical reproduction achieved  
-✅ **Package usability**: Both archives fully functional and secure  
-✅ **Submission readiness**: All checks pass; cleared for DLE602 A3
+✅ **Package verification**: Both archives install, pass the recorded suite and pass the documented smoke checks
+✅ **Release traceability**: The tag, manifests, archive sizes and published digests agree
 
 ---
 
@@ -34,7 +34,7 @@
 **Both archives are byte-for-byte identical.** The builder's determinism claims hold:
 - Entry timestamps are reproducibly fixed to the source commit time
 - Archive member paths are consistently sorted
-- Build environment variations have zero impact on output
+- Two rebuilds under the documented verification procedure produced identical output
 
 ---
 
@@ -51,7 +51,7 @@ pip install -r requirements.txt -c constraints-a3.txt
 ✅ Clean installation; all dependencies resolve without conflict.
 
 **Test Results**:
-```
+```text
 355 passed, 11 skipped, 43 warnings in 63.28s
 ```
 ✅ All tests pass. Skips are intentional (documented below).
@@ -70,7 +70,7 @@ pip install -r requirements.txt -c constraints-a3.txt
 **Setup & Installation**: ✅ Identical to lightweight; all dependencies clean.
 
 **Test Results**:
-```
+```text
 355 passed, 11 skipped, 43 warnings in 66.95s
 ```
 ✅ Identical test outcomes. All model files present and functional.
@@ -79,9 +79,10 @@ pip install -r requirements.txt -c constraints-a3.txt
 
 **Content Security Scan**: ✅ All checks pass identically to lightweight.
 
-### Verdict: ✅ **PASS — Production Ready**
+### Verdict: ✅ **PASS — Reproducibility and package checks**
 
-Both archives are secure, fully functional, and suitable for distribution and grading.
+The checks found no excluded files, unresolved LFS pointers or package-level installation failures. This
+is evidence for the recorded submission workflow, not a general security or production-readiness claim.
 
 ---
 
@@ -89,9 +90,10 @@ Both archives are secure, fully functional, and suitable for distribution and gr
 
 ### Test Skips (11 Total)
 
-1. **DistilBERT smoke tests (3 skips)**: By design, DistilBERT model is absent from lightweight archive. Tests raise a controlled `FileNotFoundError` and skip gracefully.
-2. **Sample provenance tests (6 skips)**: Require `predictions.csv`, which is not redistributed in either archive (file size constraints).
-3. **Package builder tests (2 skips)**: Require Git metadata (`.git/` directory), which ZIP archives do not carry.
+1. **Legacy Amazon checks (3 skips)**: These checks require the non-redistributed ISY503 `.review` corpus.
+2. **Sample provenance tests (6 skips)**: These require `predictions.csv`, which contains row-level SemEval-derived
+   text and gold labels and is excluded for licensing/provenance reasons.
+3. **Package builder tests (2 skips)**: These require Git metadata (`.git/`), which ZIP archives do not carry.
 
 ### Other Intentional Absences
 
@@ -100,9 +102,10 @@ Both archives are secure, fully functional, and suitable for distribution and gr
 
 ### Python Version Note
 
-- **Constraints pin**: Python 3.12.10
-- **Verification run**: Python 3.14.3
-- **Compatibility**: Newer Python version is fully compatible and passes all tests without changes.
+- **Reference environment**: Python 3.12.10, as recorded in the project baseline.
+- **Verification run**: Python 3.14.3.
+- **Dependency constraints**: `constraints-a3.txt` pins package versions, not the Python interpreter.
+- **Observed compatibility**: The verification environment passed the recorded package checks without changes.
 
 ---
 
@@ -126,7 +129,8 @@ Both archives are secure, fully functional, and suitable for distribution and gr
 3. **Functional**: All tests pass; all dependencies resolve cleanly
 4. **Portable**: No environment-specific artifacts; verified on Python 3.14.3
 
-**Recommendation**: Cleared for DLE602 A3 submission.
+**Recommendation**: The archives passed the recorded reproducibility and usability checks. Final submission
+acceptance remains an academic delivery decision, separate from this technical verification.
 
 ---
 
